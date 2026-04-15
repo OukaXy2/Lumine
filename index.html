@@ -1,62 +1,87 @@
-<!DOCTYPE html>
-<html class="light" lang="en">
+<!DOCTYPE html><html class="light" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Ethereal Curator | Live2D Virtual Assistant</title>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Ethereal Curator | Live2D Virtual Assistant</title>  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-
-  <!-- Live2D SDK & dependencies -->
-  <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.x/dist/pixi.min.js"></script>
-  <script src="https://unpkg.com/pixi-live2d-display@0.4.0/lib/pixi-live2d-display.js"></script>
-
-  <style>
-    /* Custom styles */
-    body {
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">  <!-- Live2D SDK & dependencies -->  <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.js"></script>  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.x/dist/pixi.min.js"></script>  <script src="https://unpkg.com/pixi-live2d-display@0.4.0/lib/pixi-live2d-display.js"></script>  <style>
+    html, body {
       margin: 0;
+      width: 100%;
+      min-height: 100%;
       font-family: "Inter", sans-serif;
       background: radial-gradient(circle at top, rgba(0, 206, 209, 0.14), transparent 38%),
                   linear-gradient(180deg, #f9fbfd 0%, #f4f6f8 100%);
       overflow-x: hidden;
+      overscroll-behavior: none;
     }
-    .glass, .glass-strong { backdrop-filter: blur(18px); }
-    .glass-strong { backdrop-filter: blur(20px); background: rgba(255,255,255,0.76); }
-    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 500; line-height: 1; }
+
+    .glass {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .glass-strong {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+    }
+
     .soft-grid {
-      background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+      background-image:
+        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
       background-size: 28px 28px;
+      mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
+      -webkit-mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
     }
-    /* Draggable container */
+
+    /* Draggable viewer */
     .viewer-drag {
       position: fixed;
       bottom: 20px;
       right: 20px;
       cursor: grab;
       z-index: 1000;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
       transition: box-shadow 0.2s;
     }
-    .viewer-drag:active { cursor: grabbing; }
-    /* Canvas styling */
+
+    .viewer-drag:active {
+      cursor: grabbing;
+    }
+
+    .viewer-shell {
+      width: 450px;
+      max-width: calc(100vw - 20px);
+    }
+
     #live2dCanvas {
       display: block;
-      width: 100%;
-      height: auto;
-      border-radius: 2rem;
+      width: 450px;
+      height: 550px;
+      max-width: calc(100vw - 20px);
+      max-height: calc(100vh - 160px);
+      border-radius: 1.5rem;
       background: #f9fbfd;
       box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
+
     .canvas-container {
       display: flex;
       justify-content: center;
       padding: 1rem;
     }
-    /* Modal */
+
     .modal {
       position: fixed;
       inset: 0;
@@ -66,7 +91,9 @@
       align-items: center;
       justify-content: center;
       z-index: 2000;
+      padding: 1rem;
     }
+
     .modal-card {
       background: white;
       border-radius: 2rem;
@@ -75,16 +102,31 @@
       padding: 1.5rem;
       box-shadow: 0 25px 50px -12px black;
     }
-    .hidden { display: none; }
-  </style>
-</head>
-<body>
 
-<!-- Floating Draggable Container -->
-<div id="viewerDrag" class="viewer-drag">
-  <div class="glass-strong border border-white/60 shadow-soft rounded-[2rem] p-2" style="background: rgba(255,255,255,0.8);">
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .viewer-drag {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        bottom: 92px;
+        width: calc(100vw - 12px);
+        max-width: 460px;
+      }
+
+      .viewer-shell,
+      #live2dCanvas {
+        width: 100%;
+      }
+    }
+  </style></head>
+<body><!-- Floating Draggable Container --><div id="viewerDrag" class="viewer-drag">
+  <div class="viewer-shell glass-strong border border-white/60 shadow-soft rounded-[2rem] p-2" style="background: rgba(255,255,255,0.8);">
     <div class="canvas-wrapper">
-      <canvas id="live2dCanvas" width="450" height="550" style="width:450px; height:550px; border-radius:1.5rem;"></canvas>
+      <canvas id="live2dCanvas" width="450" height="550"></canvas>
     </div>
     <!-- Toolbar mini -->
     <div class="flex items-center justify-between gap-2 mt-2 px-2">
@@ -95,15 +137,9 @@
     </div>
     <div class="text-center text-[10px] text-muted mt-1">Drag window</div>
   </div>
-</div>
-
-<!-- Main UI (non-draggable parts: header, navbar, etc.) -->
-<div class="min-h-screen relative pointer-events-none">
+</div><!-- Main UI --><div class="min-h-screen relative pointer-events-none">
   <div class="absolute inset-0 soft-grid opacity-40 pointer-events-none"></div>
-  <div class="absolute -top-20 left-1/2 w-[32rem] h-[32rem] rounded-full bg-cyan-300/20 blur-3xl pointer-events-none"></div>
-  
-  <!-- Header (clickable area) -->
-  <header class="relative z-50 px-4 pt-4 pointer-events-auto">
+  <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-[32rem] h-[32rem] rounded-full bg-cyan-300/20 blur-3xl pointer-events-none"></div>  <!-- Header -->  <header class="relative z-50 px-4 pt-4 pointer-events-auto">
     <div class="glass-strong border border-white/60 shadow-soft rounded-[1.75rem] px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-glow">
@@ -119,10 +155,7 @@
         <button id="settingsHeaderBtn" class="w-10 h-10 rounded-full hover:bg-white/50 flex items-center justify-center"><span class="material-symbols-outlined text-primary">tune</span></button>
       </div>
     </div>
-  </header>
-
-  <!-- Bottom Navigation (mobile) pointer-events-auto -->
-  <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4 pointer-events-auto">
+  </header>  <!-- Bottom Navigation -->  <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4 pointer-events-auto">
     <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
       <button data-nav="models" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-primary bg-white/60 shadow"><span class="material-symbols-outlined">view_in_ar</span><span class="text-[0.65rem] font-bold">Models</span></button>
       <button data-nav="motions" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-muted"><span class="material-symbols-outlined">animation</span><span class="text-[0.65rem] font-bold">Motions</span></button>
@@ -130,12 +163,7 @@
       <button data-nav="config" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-muted"><span class="material-symbols-outlined">settings</span><span class="text-[0.65rem] font-bold">Config</span></button>
     </div>
   </nav>
-</div>
-
-<!-- Modal untuk berbagai panel -->
-<div id="modalContainer" class="modal hidden pointer-events-auto"></div>
-
-<script>
+</div><!-- Modal --><div id="modalContainer" class="modal hidden pointer-events-auto"></div><script>
   // ======================== GLOBAL VARIABLES ========================
   let app, model;
   let isMicActive = false;
@@ -146,30 +174,28 @@
   let blinkInterval = null;
   let db = null;
   let modelLoaded = false;
-  let currentModelData = null; // untuk menyimpan file model dari IndexedDB
-  
-  // Konfigurasi
+  let currentModelData = null;
+  let currentModelObjectUrls = [];
+
   let config = {
     micSensitivity: 3.5,
     blinkIntervalMs: 3500,
     mouseFollow: true,
     breathStrength: 0.2
   };
-  
-  // Daftar motion yang tersedia
+
   let motionList = [];
   let currentMotion = null;
-  
-  // Parameter ekspresi berdasarkan file cdi3.json
+
   const expressionParams = {
     none: { reset: true },
-    angry: { ParamEX06: 1, ParamEX12: 1 },      // angry eye + angry mouth
-    sad: { ParamEX07: 1, ParamEX10: 0.5 },      // sad eye + tear
-    heart: { ParamEX08: 1, ParamEX09: 0.8 },    // heart eye + sparkling
+    angry: { ParamEX06: 1, ParamEX12: 1 },
+    sad: { ParamEX07: 1, ParamEX10: 0.5 },
+    heart: { ParamEX08: 1, ParamEX09: 0.8 },
     blush: { ParamEX11: 1 }
   };
-  
-  // ======================== INDEXEDDB HELPERS (menyimpan seluruh folder model) ========================
+
+  // ======================== INDEXEDDB HELPERS ========================
   function openDB() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open("Live2DModelDB", 2);
@@ -182,7 +208,7 @@
       request.onerror = (e) => reject(e.target.error);
     });
   }
-  
+
   async function saveFileToDB(path, blob) {
     if (!db) db = await openDB();
     return new Promise((resolve, reject) => {
@@ -193,7 +219,7 @@
       req.onerror = (e) => reject(e.target.error);
     });
   }
-  
+
   async function getFileFromDB(path) {
     if (!db) db = await openDB();
     return new Promise((resolve, reject) => {
@@ -204,7 +230,7 @@
       req.onerror = (e) => reject(e.target.error);
     });
   }
-  
+
   async function getAllFilesFromDB() {
     if (!db) db = await openDB();
     return new Promise((resolve, reject) => {
@@ -215,7 +241,7 @@
       req.onerror = (e) => reject(e.target.error);
     });
   }
-  
+
   async function saveMetadata(key, value) {
     if (!db) db = await openDB();
     const tx = db.transaction("metadata", "readwrite");
@@ -223,7 +249,7 @@
     store.put({ key: key, value: value });
     return new Promise(r => tx.oncomplete = r);
   }
-  
+
   async function getMetadata(key) {
     if (!db) db = await openDB();
     return new Promise((resolve) => {
@@ -233,7 +259,57 @@
       req.onsuccess = () => resolve(req.result ? req.result.value : null);
     });
   }
-  
+
+  function revokeObjectUrls() {
+    for (const url of currentModelObjectUrls) {
+      try { URL.revokeObjectURL(url); } catch (_) {}
+    }
+    currentModelObjectUrls = [];
+  }
+
+  async function fileExistsInDB(path) {
+    const file = await getFileFromDB(path);
+    return !!file;
+  }
+
+  async function pathToObjectUrl(path) {
+    const blob = await getFileFromDB(path);
+    if (!blob) return null;
+    const url = URL.createObjectURL(blob);
+    currentModelObjectUrls.push(url);
+    return url;
+  }
+
+  async function convertFileReferencesRecursive(node) {
+    if (Array.isArray(node)) {
+      const result = [];
+      for (const item of node) result.push(await convertFileReferencesRecursive(item));
+      return result;
+    }
+
+    if (node && typeof node === 'object') {
+      const result = {};
+      for (const [key, value] of Object.entries(node)) {
+        result[key] = await convertFileReferencesRecursive(value);
+      }
+      return result;
+    }
+
+    if (typeof node === 'string') {
+      if (node.startsWith('http:') || node.startsWith('https:') || node.startsWith('blob:') || node.startsWith('data:')) {
+        return node;
+      }
+      const blob = await getFileFromDB(node);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        currentModelObjectUrls.push(url);
+        return url;
+      }
+    }
+
+    return node;
+  }
+
   // ======================== UPLOAD MODEL FOLDER ========================
   async function uploadModelFolder() {
     return new Promise((resolve, reject) => {
@@ -242,82 +318,63 @@
       input.webkitdirectory = true;
       input.multiple = true;
       input.onchange = async (e) => {
-        const files = Array.from(e.target.files);
+        const files = Array.from(e.target.files || []);
         const fileMap = new Map();
+
+        if (!files.length) {
+          reject(new Error('Tidak ada file dipilih'));
+          return;
+        }
+
         for (const file of files) {
-          let path = file.webkitRelativePath;
-          // Simpan dengan path relatif dari root folder
-          const parts = path.split('/');
-          const relativePath = parts.slice(1).join('/'); // hapus nama folder pertama
-          const blob = await file.slice(0, file.size, file.type);
+          const pathParts = file.webkitRelativePath.split('/');
+          const relativePath = pathParts.slice(1).join('/');
+          const blob = file.slice(0, file.size, file.type);
           await saveFileToDB(relativePath, blob);
           fileMap.set(relativePath, blob);
         }
-        // Cari file model utama (model3.json)
+
         let modelJsonPath = null;
-        for (let path of fileMap.keys()) {
+        for (const path of fileMap.keys()) {
           if (path.endsWith('.model3.json')) {
             modelJsonPath = path;
             break;
           }
         }
+
         if (modelJsonPath) {
           await saveMetadata('currentModelPath', modelJsonPath);
           await saveMetadata('modelFolderUploaded', true);
           resolve(modelJsonPath);
         } else {
-          reject(new Error("Tidak ditemukan file .model3.json"));
+          reject(new Error('Tidak ditemukan file .model3.json'));
         }
       };
       input.click();
     });
   }
-  
+
   // ======================== LOAD MODEL DARI INDEXEDDB ========================
   async function loadModelFromDB(modelJsonPath) {
-    if (model) {
-      app.stage.removeChild(model);
-      model.destroy();
-    }
-    // Baca file model3.json
-    const modelJsonBlob = await getFileFromDB(modelJsonPath);
-    if (!modelJsonBlob) throw new Error("Model JSON tidak ditemukan");
-    const modelJsonText = await modelJsonBlob.text();
-    let modelData = JSON.parse(modelJsonText);
-    
-    // Ganti semua referensi texture dan file lainnya menjadi object URL dari DB
-    const textures = modelData.FileReferences?.Textures || [];
-    const newTextureUrls = [];
-    for (const texPath of textures) {
-      const texBlob = await getFileFromDB(texPath);
-      if (texBlob) {
-        const url = URL.createObjectURL(texBlob);
-        newTextureUrls.push(url);
-      } else {
-        console.warn("Texture not found:", texPath);
-        newTextureUrls.push(""); // fallback
-      }
-    }
-    if (modelData.FileReferences) modelData.FileReferences.Textures = newTextureUrls;
-    
-    // Untuk file .moc3, kita perlu override dengan blob URL juga? Sebenarnya library akan mencari berdasarkan path relatif, tapi karena kita override Textures saja cukup.
-    // Namun .moc3 juga harus bisa diakses. Kita perlu menyediakan custom loader? alternatif: kita buat blob URL untuk moc3 dan override.
-    const mocPath = modelData.FileReferences.Moc;
-    if (mocPath) {
-      const mocBlob = await getFileFromDB(mocPath);
-      if (mocBlob) {
-        const mocUrl = URL.createObjectURL(mocBlob);
-        modelData.FileReferences.Moc = mocUrl;
-      }
-    }
-    // Physics
-    if (modelData.FileReferences.Physics) {
-      const physBlob = await getFileFromDB(modelData.FileReferences.Physics);
-      if (physBlob) modelData.FileReferences.Physics = URL.createObjectURL(physBlob);
-    }
-    // Motions (akan di-load nanti)
-    // Inisialisasi model
     try {
+      if (model) {
+        app.stage.removeChild(model);
+        model.destroy({ children: true, texture: true, baseTexture: true });
+        model = null;
+      }
+      revokeObjectUrls();
+
+      const modelJsonBlob = await getFileFromDB(modelJsonPath);
+      if (!modelJsonBlob) throw new Error('Model JSON tidak ditemukan');
+
+      const modelJsonText = await modelJsonBlob.text();
+      const modelData = JSON.parse(modelJsonText);
+      currentModelData = modelData;
+
+      if (modelData.FileReferences) {
+        modelData.FileReferences = await convertFileReferencesRecursive(modelData.FileReferences);
+      }
+
       model = await PIXI.live2d.Live2DModel.from(modelData);
       model.x = 225;
       model.y = 275;
@@ -325,38 +382,50 @@
       model.scale.set(0.28);
       app.stage.addChild(model);
       modelLoaded = true;
-      
-      // Daftar motion dari folder motion/
-      motionList = [];
+
       const allFiles = await getAllFilesFromDB();
-      for (const file of allFiles) {
-        if (file.path.endsWith('.motion3.json') && !file.path.includes('idle')) {
-          motionList.push(file.path);
-        }
-      }
-      // Mainkan idle motion jika ada
-      const idlePath = "motion/idle.motion3.json";
+      motionList = allFiles
+        .filter(file => file.path.endsWith('.motion3.json') && !file.path.includes('idle'))
+        .map(file => file.path);
+
+      const idlePath = 'motion/idle.motion3.json';
       const idleBlob = await getFileFromDB(idlePath);
       if (idleBlob) {
-        const idleUrl = URL.createObjectURL(idleBlob);
-        model.internalModel.startMotion(idleUrl, 0, 0);
+        console.warn('Idle motion ditemukan, tetapi playback akan bergantung pada API Live2D yang tersedia.');
       }
+
       return true;
-    } catch(e) {
+    } catch (e) {
       console.error(e);
+      modelLoaded = false;
       return false;
     }
   }
-  
+
   // ======================== PARAMETER CONTROL ========================
-  function setParameter(name, value, clamp=true) {
+  function setParameter(name, value, clamp = true) {
     if (!model?.internalModel) return;
     if (clamp) value = Math.min(1, Math.max(0, value));
-    try { model.internalModel.setParameterValue(name, value); } catch(e) {}
+
+    try {
+      const coreModel = model.internalModel.coreModel;
+      if (coreModel?.setParameterValueById) {
+        coreModel.setParameterValueById(name, value);
+        return;
+      }
+      if (coreModel?.setParameterValue) {
+        coreModel.setParameterValue(name, value);
+        return;
+      }
+      if (model.internalModel.setParameterValue) {
+        model.internalModel.setParameterValue(name, value);
+      }
+    } catch (e) {
+      console.warn('Failed setting parameter', name, e);
+    }
   }
-  
+
   function resetAllExpressionParams() {
-    // Reset semua EX parameters ke 0
     for (let param in expressionParams) {
       if (param !== 'none') {
         for (let p in expressionParams[param]) {
@@ -364,13 +433,21 @@
         }
       }
     }
-    // Juga reset mouth form dll
-    setParameter("ParamEX01", 0); setParameter("ParamEX02", 0); setParameter("ParamEX03", 0);
-    setParameter("ParamEX04", 0); setParameter("ParamEX05", 0); setParameter("ParamEX06", 0);
-    setParameter("ParamEX07", 0); setParameter("ParamEX08", 0); setParameter("ParamEX09", 0);
-    setParameter("ParamEX10", 0); setParameter("ParamEX11", 0); setParameter("ParamEX12", 0);
+
+    setParameter('ParamEX01', 0);
+    setParameter('ParamEX02', 0);
+    setParameter('ParamEX03', 0);
+    setParameter('ParamEX04', 0);
+    setParameter('ParamEX05', 0);
+    setParameter('ParamEX06', 0);
+    setParameter('ParamEX07', 0);
+    setParameter('ParamEX08', 0);
+    setParameter('ParamEX09', 0);
+    setParameter('ParamEX10', 0);
+    setParameter('ParamEX11', 0);
+    setParameter('ParamEX12', 0);
   }
-  
+
   function setExpression(exprName) {
     if (!model) return;
     resetAllExpressionParams();
@@ -383,16 +460,31 @@
       }
     }
   }
-  
+
   async function playMotion(motionPath) {
     if (!model) return;
-    const motionBlob = await getFileFromDB(motionPath);
-    if (motionBlob) {
+    try {
+      const motionBlob = await getFileFromDB(motionPath);
+      if (!motionBlob) return;
       const motionUrl = URL.createObjectURL(motionBlob);
-      model.internalModel.startMotion(motionUrl, 0, 0);
+      currentModelObjectUrls.push(motionUrl);
+
+      if (typeof model.motion === 'function') {
+        await model.motion(motionUrl);
+        return;
+      }
+
+      if (model.internalModel?.motionManager?.startMotion) {
+        model.internalModel.motionManager.startMotion(motionUrl, 0, 0);
+        return;
+      }
+
+      console.warn('Motion API tidak tersedia pada versi Live2D yang dipakai.');
+    } catch (e) {
+      console.warn('Gagal memainkan motion:', e);
     }
   }
-  
+
   // ======================== MICROPHONE ========================
   async function initMicrophone() {
     if (audioContext) await closeMicrophone();
@@ -407,92 +499,146 @@
       await audioContext.resume();
       isMicActive = true;
       document.getElementById('micBtn').classList.add('bg-red-100');
-    } catch(e) { console.error(e); alert("Mic tidak diizinkan"); }
+    } catch (e) {
+      console.error(e);
+      alert('Mic tidak diizinkan');
+    }
   }
+
   async function closeMicrophone() {
     if (sourceNode) sourceNode.disconnect();
     if (analyserNode) analyserNode.disconnect();
     if (audioContext) await audioContext.close();
     if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-    audioContext = null; mediaStream = null; sourceNode = null; analyserNode = null;
+    audioContext = null;
+    mediaStream = null;
+    sourceNode = null;
+    analyserNode = null;
     isMicActive = false;
     document.getElementById('micBtn').classList.remove('bg-red-100');
   }
-  
+
   // ======================== ANIMATION LOOP ========================
   function startAnimationLoop() {
     function animate() {
-      if (!model) { requestAnimationFrame(animate); return; }
+      if (!model) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
       breathTime += 0.025;
-      setParameter("ParamBreath", 0.5 + Math.sin(breathTime) * config.breathStrength);
+      setParameter('ParamBreath', 0.5 + Math.sin(breathTime) * config.breathStrength);
+
       if (config.mouseFollow) {
         currentAngleX += (targetAngleX - currentAngleX) * 0.12;
         currentAngleY += (targetAngleY - currentAngleY) * 0.12;
-        setParameter("ParamAngleX", currentAngleX, false);
-        setParameter("ParamAngleY", currentAngleY, false);
+        setParameter('ParamAngleX', currentAngleX, false);
+        setParameter('ParamAngleY', currentAngleY, false);
       }
+
       if (isMicActive && analyserNode) {
         const data = new Uint8Array(analyserNode.frequencyBinCount);
         analyserNode.getByteTimeDomainData(data);
         let rms = 0;
-        for (let i=0; i<data.length; i++) { let v = (data[i]-128)/128; rms += v*v; }
-        rms = Math.sqrt(rms/data.length) || 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          rms += v * v;
+        }
+        rms = Math.sqrt(rms / data.length) || 0;
         let volume = Math.min(1, rms * config.micSensitivity);
         if (volume < 0.02) volume = 0;
         currentVolume = volume;
       } else {
         currentVolume *= 0.95;
       }
-      setParameter("ParamMouthOpenY", currentVolume, true);
+
+      setParameter('ParamMouthOpenY', currentVolume, true);
       requestAnimationFrame(animate);
     }
+
     requestAnimationFrame(animate);
   }
-  
+
   function startAutoBlink() {
     if (blinkInterval) clearInterval(blinkInterval);
     blinkInterval = setInterval(() => {
       if (!model) return;
-      setParameter("ParamEyeLOpen", 0);
-      setParameter("ParamEyeROpen", 0);
-      setTimeout(() => { setParameter("ParamEyeLOpen", 1); setParameter("ParamEyeROpen", 1); }, 120);
+      setParameter('ParamEyeLOpen', 0);
+      setParameter('ParamEyeROpen', 0);
+      setTimeout(() => {
+        setParameter('ParamEyeLOpen', 1);
+        setParameter('ParamEyeROpen', 1);
+      }, 120);
     }, config.blinkIntervalMs);
   }
-  
+
   // ======================== DRAG WINDOW ========================
   function makeDraggable() {
     const container = document.getElementById('viewerDrag');
-    let offsetX, offsetY, isDragging = false;
-    container.addEventListener('mousedown', (e) => {
-      if (e.target.closest('button')) return;
+    let offsetX = 0, offsetY = 0, isDragging = false;
+    let activePointerId = null;
+
+    const startDrag = (clientX, clientY, pointerId) => {
       isDragging = true;
-      offsetX = e.clientX - container.offsetLeft;
-      offsetY = e.clientY - container.offsetTop;
+      activePointerId = pointerId ?? null;
+
+      const rect = container.getBoundingClientRect();
+      offsetX = clientX - rect.left;
+      offsetY = clientY - rect.top;
       container.style.cursor = 'grabbing';
-      e.preventDefault();
-    });
-    window.addEventListener('mousemove', (e) => {
+      container.style.transition = 'none';
+    };
+
+    const moveDrag = (clientX, clientY) => {
       if (!isDragging) return;
-      let left = e.clientX - offsetX;
-      let top = e.clientY - offsetY;
-      left = Math.min(window.innerWidth - container.offsetWidth - 10, Math.max(10, left));
-      top = Math.min(window.innerHeight - container.offsetHeight - 10, Math.max(10, top));
+      let left = clientX - offsetX;
+      let top = clientY - offsetY;
+
+      const maxLeft = window.innerWidth - container.offsetWidth - 10;
+      const maxTop = window.innerHeight - container.offsetHeight - 10;
+
+      left = Math.min(maxLeft, Math.max(10, left));
+      top = Math.min(maxTop, Math.max(10, top));
+
       container.style.left = left + 'px';
       container.style.top = top + 'px';
       container.style.right = 'auto';
       container.style.bottom = 'auto';
+      container.style.transform = 'none';
+    };
+
+    const endDrag = () => {
+      isDragging = false;
+      activePointerId = null;
+      container.style.cursor = 'grab';
+      container.style.transition = 'box-shadow 0.2s';
+    };
+
+    container.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      container.setPointerCapture(e.pointerId);
+      startDrag(e.clientX, e.clientY, e.pointerId);
+      e.preventDefault();
     });
-    window.addEventListener('mouseup', () => { isDragging = false; container.style.cursor = 'grab'; });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+      moveDrag(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('pointerup', () => endDrag());
+    window.addEventListener('pointercancel', () => endDrag());
   }
-  
+
   // ======================== MODAL UI ========================
   function showModal(content) {
     const modalDiv = document.getElementById('modalContainer');
     modalDiv.innerHTML = `<div class="modal-card">${content}</div>`;
     modalDiv.classList.remove('hidden');
-    modalDiv.onclick = (e) => { if(e.target === modalDiv) modalDiv.classList.add('hidden'); };
+    modalDiv.onclick = (e) => { if (e.target === modalDiv) modalDiv.classList.add('hidden'); };
   }
-  
+
   function showProfile() {
     showModal(`
       <h3 class="text-xl font-bold mb-2">Profil</h3>
@@ -501,7 +647,7 @@
       <button class="mt-4 bg-primary text-white px-4 py-2 rounded-full" onclick="document.getElementById('modalContainer').classList.add('hidden')">Tutup</button>
     `);
   }
-  
+
   function showSettings() {
     showModal(`
       <h3 class="text-xl font-bold mb-3">Pengaturan</h3>
@@ -518,7 +664,7 @@
       document.getElementById('modalContainer').classList.add('hidden');
     };
   }
-  
+
   function showModelsPanel() {
     showModal(`
       <h3 class="text-xl font-bold mb-2">Model</h3>
@@ -531,16 +677,19 @@
         const modelPath = await uploadModelFolder();
         await loadModelFromDB(modelPath);
         document.getElementById('modalContainer').classList.add('hidden');
-        alert("Model berhasil dimuat!");
-      } catch(e) { alert("Gagal upload: "+e.message); }
+        alert('Model berhasil dimuat!');
+      } catch (e) {
+        alert('Gagal upload: ' + e.message);
+      }
     };
   }
-  
+
   function showMotionsPanel() {
     if (motionList.length === 0) {
       showModal(`<h3 class="text-xl font-bold">Motion</h3><p>Belum ada motion tersedia. Upload folder model yang berisi motion.</p><button onclick="document.getElementById('modalContainer').classList.add('hidden')" class="mt-2 bg-primary text-white px-4 py-2 rounded-full">Tutup</button>`);
       return;
     }
+
     let listHtml = '<h3 class="text-xl font-bold mb-2">Pilih Motion</h3><div class="max-h-60 overflow-y-auto">';
     motionList.forEach(m => {
       listHtml += `<button class="motion-item block w-full text-left p-2 hover:bg-gray-100 rounded" data-path="${m}">${m.split('/').pop()}</button>`;
@@ -548,10 +697,13 @@
     listHtml += '</div>';
     showModal(listHtml);
     document.querySelectorAll('.motion-item').forEach(btn => {
-      btn.onclick = () => { playMotion(btn.dataset.path); document.getElementById('modalContainer').classList.add('hidden'); };
+      btn.onclick = () => {
+        playMotion(btn.dataset.path);
+        document.getElementById('modalContainer').classList.add('hidden');
+      };
     });
   }
-  
+
   function showMoodPanel() {
     showModal(`
       <h3 class="text-xl font-bold mb-2">Ekspresi / Mood</h3>
@@ -564,44 +716,76 @@
       </div>
     `);
     document.querySelectorAll('[data-exp]').forEach(btn => {
-      btn.onclick = () => { setExpression(btn.dataset.exp); document.getElementById('modalContainer').classList.add('hidden'); };
+      btn.onclick = () => {
+        setExpression(btn.dataset.exp);
+        document.getElementById('modalContainer').classList.add('hidden');
+      };
     });
   }
-  
+
   function showConfigPanel() {
-    showSettings(); // reuse
+    showSettings();
   }
-  
+
+  function resizeCanvasForViewport() {
+    const canvas = document.getElementById('live2dCanvas');
+    if (!canvas) return;
+
+    const mobile = window.innerWidth <= 768;
+    if (mobile) {
+      canvas.style.width = '100%';
+      canvas.style.height = 'auto';
+    } else {
+      canvas.style.width = '450px';
+      canvas.style.height = '550px';
+    }
+  }
+
   // ======================== INIT ========================
   (async function init() {
-    app = new PIXI.Application({ view: document.getElementById('live2dCanvas'), width: 450, height: 550, backgroundColor: 0xf9fbfd });
+    resizeCanvasForViewport();
+
+    app = new PIXI.Application({
+      view: document.getElementById('live2dCanvas'),
+      width: 450,
+      height: 550,
+      backgroundColor: 0xf9fbfd,
+      antialias: true,
+      autoDensity: true,
+      resolution: window.devicePixelRatio || 1
+    });
+
     makeDraggable();
     startAnimationLoop();
     startAutoBlink();
-    
-    // Cek apakah sudah ada model di IndexedDB
+
     await openDB();
     const savedModelPath = await getMetadata('currentModelPath');
+
     if (savedModelPath) {
       await loadModelFromDB(savedModelPath);
     } else {
-      // Tawarkan upload
-      alert("Selamat datang! Silakan upload folder model Live2D (Lumine) untuk memulai.");
+      alert('Selamat datang! Silakan upload folder model Live2D untuk memulai.');
       try {
         const modelPath = await uploadModelFolder();
         await loadModelFromDB(modelPath);
-      } catch(e) { alert("Gagal upload model. Pastikan folder berisi file .model3.json"); }
+      } catch (e) {
+        alert('Gagal upload model. Pastikan folder berisi file .model3.json');
+      }
     }
-    
-    // Event UI
+
     document.getElementById('micBtn').onclick = () => isMicActive ? closeMicrophone() : initMicrophone();
-    document.getElementById('resetBtn').onclick = () => { targetAngleX = targetAngleY = 0; currentAngleX = currentAngleY = 0; setParameter("ParamAngleX",0); setParameter("ParamAngleY",0); };
+    document.getElementById('resetBtn').onclick = () => {
+      targetAngleX = targetAngleY = 0;
+      currentAngleX = currentAngleY = 0;
+      setParameter('ParamAngleX', 0);
+      setParameter('ParamAngleY', 0);
+    };
     document.getElementById('expressionBtn').onclick = () => showMoodPanel();
     document.getElementById('configBtn').onclick = () => showConfigPanel();
     document.getElementById('profileBtn').onclick = () => showProfile();
     document.getElementById('settingsHeaderBtn').onclick = () => showSettings();
-    
-    // Bottom nav
+
     document.querySelectorAll('[data-nav]').forEach(btn => {
       btn.onclick = () => {
         const nav = btn.dataset.nav;
@@ -611,21 +795,21 @@
         else if (nav === 'config') showConfigPanel();
       };
     });
-    
-    // Mouse follow
+
     document.addEventListener('mousemove', (e) => {
       if (!config.mouseFollow) return;
       const canvasRect = document.getElementById('live2dCanvas').getBoundingClientRect();
-      const centerX = canvasRect.left + canvasRect.width/2;
-      const centerY = canvasRect.top + canvasRect.height/2;
-      let dx = (e.clientX - centerX) / (canvasRect.width/2);
-      let dy = (e.clientY - centerY) / (canvasRect.height/2);
+      const centerX = canvasRect.left + canvasRect.width / 2;
+      const centerY = canvasRect.top + canvasRect.height / 2;
+      let dx = (e.clientX - centerX) / (canvasRect.width / 2);
+      let dy = (e.clientY - centerY) / (canvasRect.height / 2);
       dx = Math.min(0.8, Math.max(-0.8, dx));
       dy = Math.min(0.8, Math.max(-0.8, dy));
       targetAngleX = dx * 25;
       targetAngleY = dy * 20;
     });
+
+    window.addEventListener('resize', resizeCanvasForViewport);
   })();
-</script>
-</body>
+</script></body>
 </html>
