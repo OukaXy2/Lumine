@@ -2,9 +2,8 @@
 <html class="light" lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Ethereal Curator | Live2D Virtual Assistant</title>
-
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -239,63 +238,65 @@
     </main>
 
     <!-- Floating Mobile HUD -->
-    <div class="md:hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-[calc(100vw-1.5rem)] max-w-[26rem]">
-      <div class="glass-strong border border-white/70 shadow-soft rounded-[2rem] px-4 py-3">
-        <div class="flex items-center justify-between gap-3">
-          <button id="mic-toggle" onclick="toggleMic()"
-            class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
-            <span id="mic-icon" class="material-symbols-outlined text-primary text-[24px]">mic</span>
-          </button>
+    <div class="md:hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-full max-w-[420px] px-4">
+  <div class="glass-strong border border-white/70 shadow-soft rounded-[2rem] px-4 py-3">
+    <div class="flex items-center justify-between gap-3">
+      
+      <button id="mic-toggle" onclick="toggleMic()"
+        class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
+        <span id="mic-icon" class="material-symbols-outlined text-primary text-[24px]">mic</span>
+      </button>
 
-          <button onclick="resetPose()"
-            class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
-            <span class="material-symbols-outlined text-muted text-[24px]">restart_alt</span>
-          </button>
+      <button onclick="resetPose()"
+        class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
+        <span class="material-symbols-outlined text-muted text-[24px]">restart_alt</span>
+      </button>
 
-          <div class="relative flex-1">
-            <button id="expression-btn" onclick="toggleExpressionMenu()"
-              class="w-full h-14 rounded-2xl bg-white border border-white/70 shadow-sm px-4 flex items-center justify-between">
-              <span class="text-sm font-bold text-primary">Expressions</span>
-              <span class="material-symbols-outlined text-muted text-[20px]">keyboard_arrow_up</span>
-            </button>
+      <div class="relative flex-1">
+        <button id="expression-btn" onclick="toggleExpressionMenu()"
+          class="w-full h-14 rounded-2xl bg-white border border-white/70 shadow-sm px-4 flex items-center justify-between">
+          <span class="text-sm font-bold text-primary">Expressions</span>
+          <span class="material-symbols-outlined text-muted text-[20px]">keyboard_arrow_up</span>
+        </button>
 
-            <div id="expression-menu" class="hidden absolute bottom-[4.5rem] right-0 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2">
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Normal')">Normal</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Angry')">Angry</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Sad')">Sad</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Love')">Love</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Blush')">Blush</button>
-            </div>
-          </div>
+        <div id="expression-menu" class="hidden absolute bottom-[4.5rem] right-0 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2">
+          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Normal')">Normal</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Angry')">Angry</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Sad')">Sad</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Love')">Love</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Blush')">Blush</button>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
     <!-- Bottom Mobile Navigation -->
-    <nav class="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-1rem)] max-w-[28rem]">
-      <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] bg-primary text-white shadow-glow">
-          <span class="material-symbols-outlined text-[22px]">view_in_ar</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Models</span>
-        </a>
+<nav class="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4">
+  <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
+    
+    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] bg-primary text-white shadow-glow">
+      <span class="material-symbols-outlined text-[22px]">view_in_ar</span>
+      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Models</span>
+    </a>
 
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-          <span class="material-symbols-outlined text-[22px]">animation</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Motions</span>
-        </a>
+    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
+      <span class="material-symbols-outlined text-[22px]">animation</span>
+      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Motions</span>
+    </a>
 
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-          <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Mood</span>
-        </a>
+    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
+      <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
+      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Mood</span>
+    </a>
 
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-          <span class="material-symbols-outlined text-[22px]">settings</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Config</span>
-        </a>
-      </div>
-    </nav>
+    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
+      <span class="material-symbols-outlined text-[22px]">settings</span>
+      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Config</span>
+    </a>
+
   </div>
+</nav>
 
   <script>
     let micActive = false;
