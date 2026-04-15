@@ -10,6 +10,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
+  <!-- Live2D SDK & dependencies -->
+  <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.x/dist/pixi.min.js"></script>
+  <script src="https://unpkg.com/pixi-live2d-display@0.4.0/lib/pixi-live2d-display.js"></script>
+
   <script>
     tailwind.config = {
       darkMode: "class",
@@ -98,6 +103,24 @@
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* canvas styling */
+    #live2dCanvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 500px;
+      margin: 0 auto;
+      border-radius: 2rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      background: #f9fbfd;
+    }
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
   </style>
 </head>
 
@@ -141,41 +164,25 @@
     <main class="relative z-10 px-4 sm:px-6 md:px-8 pb-[140px] pt-4 md:pt-8">
       <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1.25fr_0.75fr] gap-6 items-stretch">
         
-        <!-- Main Character Stage -->
+        <!-- Main Character Stage (Live2D Canvas) -->
         <section class="relative overflow-hidden rounded-[2rem] border border-white/60 glass shadow-soft min-h-[68vh] md:min-h-[calc(100vh-9rem)]">
           <div class="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-primary/5"></div>
-
-          <div class="relative h-full min-h-[68vh] md:min-h-[calc(100vh-9rem)] flex flex-col">
+          <div class="relative h-full flex flex-col">
             <div class="px-5 sm:px-6 pt-5 sm:pt-6 flex items-center justify-between">
               <div>
                 <p class="text-[0.7rem] sm:text-xs font-semibold uppercase tracking-[0.28em] text-muted">Character Stage</p>
                 <h1 class="mt-2 text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-text">Your assistant feels alive here</h1>
               </div>
-
               <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 border border-white/60">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span class="text-xs font-semibold text-muted uppercase tracking-[0.18em]">Waiting</span>
+                <span id="live2d-status-led" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span id="live2d-status-text" class="text-xs font-semibold text-muted uppercase tracking-[0.18em]">Waiting</span>
               </div>
             </div>
 
-            <div class="flex-1 flex items-center justify-center px-4 py-10 sm:py-14">
-              <div class="relative flex flex-col items-center justify-center">
-                <div class="absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full bg-primary-soft/15 blur-3xl"></div>
-                <div class="absolute w-40 h-40 sm:w-56 sm:h-56 rounded-full bg-amber-300/10 blur-2xl float-up"></div>
-
-                <div class="relative w-40 h-40 sm:w-52 sm:h-52 md:w-60 md:h-60 rounded-[2.25rem] bg-white/72 border border-white/70 shadow-soft flex items-center justify-center">
-                  <div class="absolute inset-3 rounded-[1.75rem] border border-primary/10"></div>
-                  <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-primary/10 flex items-center justify-center shadow-glow">
-                    <span class="material-symbols-outlined text-primary text-5xl sm:text-6xl">view_in_ar</span>
-                  </div>
-                </div>
-
-                <div class="mt-6 text-center">
-                  <div class="text-[0.72rem] sm:text-xs font-bold uppercase tracking-[0.32em] text-muted">Live2D Model</div>
-                  <p class="mt-3 text-sm sm:text-base text-muted max-w-sm leading-relaxed">
-                    A calm, premium stage built to make the character feel like the center of the experience.
-                  </p>
-                </div>
+            <!-- Canvas area -->
+            <div class="flex-1 flex items-center justify-center px-4 py-6 sm:py-10">
+              <div class="relative canvas-container w-full">
+                <canvas id="live2dCanvas" width="450" height="550" style="width:100%; height:auto; max-width:450px; aspect-ratio:450/550"></canvas>
               </div>
             </div>
 
@@ -186,15 +193,15 @@
                   <span id="mic-status" class="text-[0.7rem] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted">Mic: Inactive</span>
                 </div>
                 <div class="flex items-center gap-2 px-3 py-2 rounded-full bg-white/75 border border-white/70">
-                  <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                  <span class="text-[0.7rem] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted">Model: Waiting</span>
+                  <span id="model-status-led" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                  <span id="model-status-text" class="text-[0.7rem] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted">Model: Loading</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Right Side Panel -->
+        <!-- Right Side Panel (Desktop) -->
         <aside class="hidden md:flex flex-col gap-6">
           <section class="rounded-[2rem] border border-white/60 glass shadow-soft p-6">
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-muted">Control Preview</p>
@@ -202,29 +209,36 @@
             <p class="mt-3 text-sm leading-relaxed text-muted">
               A compact control area that keeps the character dominant while still feeling polished and intentional.
             </p>
-
             <div class="mt-6 grid grid-cols-3 gap-3">
-              <div class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center">
+              <button id="desktop-mic-btn" class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center transition hover:bg-white/90">
                 <div class="w-12 h-12 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
                   <span class="material-symbols-outlined text-primary">mic</span>
                 </div>
                 <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Mic</div>
-              </div>
-              <div class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center">
+              </button>
+              <button id="desktop-reset-btn" class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center transition hover:bg-white/90">
                 <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center">
                   <span class="material-symbols-outlined text-slate-500">restart_alt</span>
                 </div>
                 <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Reset</div>
-              </div>
-              <div class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center">
-                <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 flex items-center justify-center">
-                  <span class="material-symbols-outlined text-amber-700">auto_awesome</span>
+              </button>
+              <div class="relative">
+                <button id="desktop-expression-btn" class="w-full rounded-2xl bg-white/80 border border-white/70 p-4 text-center transition hover:bg-white/90">
+                  <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-amber-700">auto_awesome</span>
+                  </div>
+                  <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Mood</div>
+                </button>
+                <div id="desktop-expression-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2 z-20">
+                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="none">😐 Normal</button>
+                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="angry">😠 Marah</button>
+                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="sad">😢 Sedih</button>
+                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="heart">😍 Hati</button>
+                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="blush">😊 Blush</button>
                 </div>
-                <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Mood</div>
               </div>
             </div>
           </section>
-
           <section class="rounded-[2rem] border border-white/60 glass shadow-soft p-6 flex-1">
             <p class="text-xs font-semibold uppercase tracking-[0.28em] text-muted">Design Direction</p>
             <ul class="mt-4 space-y-4 text-sm text-muted leading-relaxed">
@@ -239,108 +253,336 @@
 
     <!-- Floating Mobile HUD -->
     <div class="md:hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-full max-w-[420px] px-4">
-  <div class="glass-strong border border-white/70 shadow-soft rounded-[2rem] px-4 py-3">
-    <div class="flex items-center justify-between gap-3">
-      
-      <button id="mic-toggle" onclick="toggleMic()"
-        class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
-        <span id="mic-icon" class="material-symbols-outlined text-primary text-[24px]">mic</span>
-      </button>
-
-      <button onclick="resetPose()"
-        class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
-        <span class="material-symbols-outlined text-muted text-[24px]">restart_alt</span>
-      </button>
-
-      <div class="relative flex-1">
-        <button id="expression-btn" onclick="toggleExpressionMenu()"
-          class="w-full h-14 rounded-2xl bg-white border border-white/70 shadow-sm px-4 flex items-center justify-between">
-          <span class="text-sm font-bold text-primary">Expressions</span>
-          <span class="material-symbols-outlined text-muted text-[20px]">keyboard_arrow_up</span>
-        </button>
-
-        <div id="expression-menu" class="hidden absolute bottom-[4.5rem] right-0 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2">
-          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Normal')">Normal</button>
-          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Angry')">Angry</button>
-          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Sad')">Sad</button>
-          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Love')">Love</button>
-          <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" onclick="setExpression('Blush')">Blush</button>
+      <div class="glass-strong border border-white/70 shadow-soft rounded-[2rem] px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <button id="mobile-mic-btn" class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
+            <span id="mobile-mic-icon" class="material-symbols-outlined text-primary text-[24px]">mic</span>
+          </button>
+          <button id="mobile-reset-btn" class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
+            <span class="material-symbols-outlined text-muted text-[24px]">restart_alt</span>
+          </button>
+          <div class="relative flex-1">
+            <button id="mobile-expression-btn" class="w-full h-14 rounded-2xl bg-white border border-white/70 shadow-sm px-4 flex items-center justify-between">
+              <span class="text-sm font-bold text-primary">Expressions</span>
+              <span class="material-symbols-outlined text-muted text-[20px]">keyboard_arrow_up</span>
+            </button>
+            <div id="mobile-expression-menu" class="hidden absolute bottom-[4.5rem] right-0 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2 z-20">
+              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="none">Normal</button>
+              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="angry">Angry</button>
+              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="sad">Sad</button>
+              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="heart">Love</button>
+              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="blush">Blush</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+
+    <nav class="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4">
+      <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
+        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] bg-primary text-white shadow-glow">
+          <span class="material-symbols-outlined text-[22px]">view_in_ar</span>
+          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Models</span>
+        </a>
+        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
+          <span class="material-symbols-outlined text-[22px]">animation</span>
+          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Motions</span>
+        </a>
+        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
+          <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
+          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Mood</span>
+        </a>
+        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
+          <span class="material-symbols-outlined text-[22px]">settings</span>
+          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Config</span>
+        </a>
+      </div>
+    </nav>
   </div>
-</div>
-
-    <!-- Bottom Mobile Navigation -->
-<nav class="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4">
-  <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
-    
-    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] bg-primary text-white shadow-glow">
-      <span class="material-symbols-outlined text-[22px]">view_in_ar</span>
-      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Models</span>
-    </a>
-
-    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-      <span class="material-symbols-outlined text-[22px]">animation</span>
-      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Motions</span>
-    </a>
-
-    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-      <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
-      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Mood</span>
-    </a>
-
-    <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-      <span class="material-symbols-outlined text-[22px]">settings</span>
-      <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Config</span>
-    </a>
-
-  </div>
-</nav>
 
   <script>
-    let micActive = false;
+    // ======================== KONFIGURASI ========================
+    // ⚠️ GANTI URL INI dengan alamat folder model (tanpa texture) di server Anda
+    // Contoh: "https://ukaxy2.github.io/lumine/" atau "http://localhost:8000/lumine/"
+    const MODEL_BASE_URL = "https://raw.githubusercontent.com/username/repo/main/lumine/";  // <-- GANTI DENGAN URL REPO ANDA
+    const MODEL_JSON_PATH = "lumine.model3.json";
+    const TEXTURE_FILENAME = "texture_00.png";
+    const EXPRESSIONS = {
+      angry: "exp_angry.exp3.json",
+      sad: "exp_sad.exp3.json",
+      heart: "exp_heart.exp3.json",
+      blush: "exp_blush.exp3.json"
+    };
+    const IDLE_MOTION_PATH = "motion/idle.motion3.json";
 
-    function toggleMic() {
-      micActive = !micActive;
-      const micIcon = document.getElementById("mic-icon");
-      const micStatus = document.getElementById("mic-status");
+    // ======================== GLOBALS ========================
+    let app, model;
+    let isMicActive = false;
+    let audioContext = null, mediaStream = null, sourceNode = null, analyserNode = null;
+    let currentVolume = 0;
+    let targetAngleX = 0, targetAngleY = 0, currentAngleX = 0, currentAngleY = 0;
+    let breathTime = 0;
+    let blinkInterval = null;
+    let db = null;
+    let modelLoaded = false;
 
-      if (micActive) {
-        micIcon.textContent = "mic";
-        micIcon.classList.remove("text-primary");
-        micIcon.classList.add("text-red-500");
-        micStatus.textContent = "Mic: Active";
-      } else {
-        micIcon.textContent = "mic";
-        micIcon.classList.remove("text-red-500");
-        micIcon.classList.add("text-primary");
-        micStatus.textContent = "Mic: Inactive";
+    // DOM elements
+    const canvas = document.getElementById('live2dCanvas');
+    const micStatusSpan = document.getElementById('mic-status');
+    const modelStatusText = document.getElementById('model-status-text');
+    const modelStatusLed = document.getElementById('model-status-led');
+    const live2dStatusText = document.getElementById('live2d-status-text');
+    const live2dStatusLed = document.getElementById('live2d-status-led');
+
+    // ======================== INDEXEDDB ========================
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("Live2DTextureDB", 1);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("textures")) db.createObjectStore("textures");
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function saveTextureToDB(blob) {
+      if (!db) db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction("textures", "readwrite");
+        const store = tx.objectStore("textures");
+        const request = store.put(blob, TEXTURE_FILENAME);
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function loadTextureFromDB() {
+      if (!db) db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction("textures", "readonly");
+        const store = tx.objectStore("textures");
+        const request = store.get(TEXTURE_FILENAME);
+        request.onsuccess = () => resolve(request.result ? URL.createObjectURL(request.result) : null);
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function showTextureUploadUI() {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[1000]';
+        overlay.innerHTML = `
+          <div class="bg-white rounded-3xl p-6 max-w-md text-center shadow-2xl">
+            <h3 class="text-xl font-bold mb-2">Upload Texture Model</h3>
+            <p class="text-sm text-gray-600 mb-4">File <strong>${TEXTURE_FILENAME}</strong> belum tersimpan. Pilih dari folder model Lumine.</p>
+            <div class="border-2 border-dashed border-primary/40 rounded-2xl p-6 mb-4 cursor-pointer hover:bg-gray-50" id="upload-dropzone">
+              📁 Drag & drop atau klik untuk upload
+            </div>
+            <input type="file" id="texture-file-input" accept="image/png" class="hidden" />
+            <button id="upload-confirm" class="bg-primary text-white px-6 py-2 rounded-full">Pilih File</button>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+        const dropzone = overlay.querySelector('#upload-dropzone');
+        const fileInput = overlay.querySelector('#texture-file-input');
+        const confirmBtn = overlay.querySelector('#upload-confirm');
+        const handleFile = async (file) => {
+          if (!file || !file.type.includes('png')) return alert('Harap pilih file .png (texture_00.png)');
+          modelStatusText.innerText = 'Menyimpan texture...';
+          const blob = await file.slice(0, file.size, file.type);
+          await saveTextureToDB(blob);
+          const url = URL.createObjectURL(blob);
+          overlay.remove();
+          resolve(url);
+        };
+        dropzone.onclick = () => fileInput.click();
+        dropzone.ondragover = (e) => { e.preventDefault(); dropzone.style.background = '#eef1f4'; };
+        dropzone.ondragleave = () => dropzone.style.background = '';
+        dropzone.ondrop = async (e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) handleFile(file); };
+        confirmBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => { if (fileInput.files[0]) handleFile(fileInput.files[0]); };
+      });
+    }
+
+    // ======================== LIVE2D MODEL LOAD ========================
+    async function loadModelWithTexture(textureUrl) {
+      if (model) { app.stage.removeChild(model); model.destroy(); }
+      const modelJsonUrl = MODEL_BASE_URL + MODEL_JSON_PATH;
+      let modelData;
+      try {
+        const resp = await fetch(modelJsonUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        modelData = await resp.json();
+      } catch(e) {
+        modelStatusText.innerText = 'Gagal load model.json! Periksa BASE_URL';
+        live2dStatusText.innerText = 'Error';
+        return false;
+      }
+      if (modelData.FileReferences?.Textures) modelData.FileReferences.Textures = [textureUrl];
+      else modelData.FileReferences = { ...modelData.FileReferences, Textures: [textureUrl] };
+      try {
+        model = await PIXI.live2d.Live2DModel.from(modelData);
+        model.x = canvas.width / 2;
+        model.y = canvas.height / 2;
+        model.anchor.set(0.5, 0.5);
+        model.scale.set(0.28);
+        app.stage.addChild(model);
+        // idle motion
+        try { await fetch(MODEL_BASE_URL + IDLE_MOTION_PATH, { method: 'HEAD' }); model.internalModel.startMotion(IDLE_MOTION_PATH, 0, 0); } catch(e) {}
+        modelLoaded = true;
+        modelStatusText.innerText = 'Siap';
+        modelStatusLed.className = 'w-2 h-2 rounded-full bg-green-500';
+        live2dStatusText.innerText = 'Active';
+        live2dStatusLed.className = 'w-2.5 h-2.5 rounded-full bg-green-500';
+        return true;
+      } catch(e) {
+        modelStatusText.innerText = 'Error load model';
+        return false;
       }
     }
 
-    function setExpression(exp) {
-      console.log("Expression:", exp);
-      document.getElementById("expression-menu").classList.add("hidden");
+    // ======================== PARAMETER CONTROL ========================
+    function setParameter(name, value, clamp=true) {
+      if (!model?.internalModel) return;
+      if (clamp) value = Math.min(1, Math.max(0, value));
+      try { model.internalModel.setParameterValue(name, value); } catch(e) {}
     }
 
+    function startAutoBlink() {
+      if (blinkInterval) clearInterval(blinkInterval);
+      blinkInterval = setInterval(() => {
+        if (!model) return;
+        setParameter("ParamEyeLOpen", 0);
+        setParameter("ParamEyeROpen", 0);
+        setTimeout(() => { setParameter("ParamEyeLOpen", 1); setParameter("ParamEyeROpen", 1); }, 120);
+      }, Math.random() * 2000 + 3000);
+    }
+
+    function startAnimationLoop() {
+      function animate() {
+        if (!model) { requestAnimationFrame(animate); return; }
+        breathTime += 0.025;
+        setParameter("ParamBreath", 0.5 + Math.sin(breathTime) * 0.2);
+        currentAngleX += (targetAngleX - currentAngleX) * 0.12;
+        currentAngleY += (targetAngleY - currentAngleY) * 0.12;
+        setParameter("ParamAngleX", currentAngleX, false);
+        setParameter("ParamAngleY", currentAngleY, false);
+        if (isMicActive && analyserNode) {
+          const data = new Uint8Array(analyserNode.frequencyBinCount);
+          analyserNode.getByteTimeDomainData(data);
+          let rms = 0;
+          for (let i=0; i<data.length; i++) { let v = (data[i]-128)/128; rms += v*v; }
+          rms = Math.sqrt(rms/data.length) || 0;
+          currentVolume = Math.min(1, rms * 3.5);
+          if (currentVolume < 0.02) currentVolume = 0;
+        } else { currentVolume *= 0.95; }
+        setParameter("ParamMouthOpenY", currentVolume, true);
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // ======================== MICROPHONE ========================
+    async function initMicrophone() {
+      if (audioContext) await closeMicrophone();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStream = stream;
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 256;
+        sourceNode = audioContext.createMediaStreamSource(stream);
+        sourceNode.connect(analyserNode);
+        await audioContext.resume();
+        isMicActive = true;
+        micStatusSpan.innerText = 'Mic: Active';
+        document.querySelectorAll('#mic-icon, #mobile-mic-icon').forEach(icon => { if(icon) icon.classList.add('text-red-500'); });
+      } catch(e) { console.error(e); micStatusSpan.innerText = 'Mic: Error'; }
+    }
+    async function closeMicrophone() {
+      if (sourceNode) sourceNode.disconnect();
+      if (analyserNode) analyserNode.disconnect();
+      if (audioContext) await audioContext.close();
+      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+      audioContext = null; mediaStream = null; sourceNode = null; analyserNode = null;
+      isMicActive = false;
+      micStatusSpan.innerText = 'Mic: Inactive';
+      document.querySelectorAll('#mic-icon, #mobile-mic-icon').forEach(icon => { if(icon) icon.classList.remove('text-red-500'); });
+    }
+
+    // ======================== EXPRESSIONS & RESET ========================
+    async function triggerExpression(exprKey) {
+      if (!model) return;
+      if (exprKey === 'none') {
+        if (model.internalModel.resetExpression) model.internalModel.resetExpression();
+        return;
+      }
+      const file = EXPRESSIONS[exprKey];
+      if (!file) return;
+      try {
+        const resp = await fetch(MODEL_BASE_URL + file);
+        if (!resp.ok) throw new Error();
+        const exprData = await resp.json();
+        model.internalModel.setExpression(exprData);
+      } catch(e) { console.warn("Ekspresi gagal", e); }
+    }
     function resetPose() {
-      console.log("Reset pose");
-      document.getElementById("expression-menu").classList.add("hidden");
+      targetAngleX = targetAngleY = currentAngleX = currentAngleY = 0;
+      setParameter("ParamAngleX", 0); setParameter("ParamAngleY", 0);
+      setParameter("ParamAngleZ", 0); setParameter("ParamBodyAngleX", 0);
+      currentVolume = 0; setParameter("ParamMouthOpenY", 0);
     }
 
-    function toggleExpressionMenu() {
-      const menu = document.getElementById("expression-menu");
-      menu.classList.toggle("hidden");
+    // ======================== MOUSE TRACKING ========================
+    function initMouseTracking() {
+      document.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const centerX = rect.left + rect.width/2, centerY = rect.top + rect.height/2;
+        let dx = (e.clientX - centerX) / (rect.width/2);
+        let dy = (e.clientY - centerY) / (rect.height/2);
+        dx = Math.min(0.8, Math.max(-0.8, dx));
+        dy = Math.min(0.8, Math.max(-0.8, dy));
+        targetAngleX = dx * 25;
+        targetAngleY = dy * 20;
+      });
     }
 
-    document.addEventListener("click", function (e) {
-      const btn = document.getElementById("expression-btn");
-      const menu = document.getElementById("expression-menu");
-      if (!btn.contains(e.target) && !menu.contains(e.target)) {
-        menu.classList.add("hidden");
+    // ======================== INIT ========================
+    (async function init() {
+      app = new PIXI.Application({ view: canvas, width: 450, height: 550, backgroundColor: 0xf9fbfd, backgroundAlpha: 1 });
+      initMouseTracking();
+      startAutoBlink();
+      startAnimationLoop();
+
+      await openDB();
+      let textureUrl = await loadTextureFromDB();
+      if (!textureUrl) textureUrl = await showTextureUploadUI();
+      await loadModelWithTexture(textureUrl);
+
+      // Attach UI events
+      const micButtons = ['#mobile-mic-btn', '#desktop-mic-btn'];
+      micButtons.forEach(sel => { const btn = document.querySelector(sel); if(btn) btn.onclick = () => isMicActive ? closeMicrophone() : initMicrophone(); });
+      const resetButtons = ['#mobile-reset-btn', '#desktop-reset-btn'];
+      resetButtons.forEach(sel => { const btn = document.querySelector(sel); if(btn) btn.onclick = resetPose; });
+      const expressionMenus = ['#mobile-expression-menu', '#desktop-expression-menu'];
+      const toggleBtns = ['#mobile-expression-btn', '#desktop-expression-btn'];
+      toggleBtns.forEach((btnSel, idx) => {
+        const btn = document.querySelector(btnSel);
+        if(btn) btn.onclick = (e) => { e.stopPropagation(); document.querySelector(expressionMenus[idx]).classList.toggle('hidden'); };
+      });
+      document.querySelectorAll('[data-exp]').forEach(el => {
+        el.onclick = () => { triggerExpression(el.getAttribute('data-exp')); document.querySelectorAll('.hidden').forEach(menu => menu.classList.add('hidden')); };
+      });
+      document.addEventListener('click', () => {
+        document.querySelectorAll('#mobile-expression-menu, #desktop-expression-menu').forEach(m => m.classList.add('hidden'));
+      });
+      if (MODEL_BASE_URL.includes("username/repo")) {
+        modelStatusText.innerText = '⚠️ Ganti BASE_URL';
+        live2dStatusText.innerText = 'Config Error';
       }
-    });
+    })();
   </script>
 </body>
 </html>
