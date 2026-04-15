@@ -15,574 +15,617 @@
   <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.x/dist/pixi.min.js"></script>
   <script src="https://unpkg.com/pixi-live2d-display@0.4.0/lib/pixi-live2d-display.js"></script>
 
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            primary: "#00696b",
-            "primary-soft": "#00ced1",
-            background: "#f6f7f9",
-            surface: "#ffffff",
-            "surface-2": "#eef1f4",
-            outline: "#d3d9df",
-            text: "#1c1f23",
-            muted: "#66707a",
-            danger: "#ba1a1a",
-            accent: "#ffb876",
-          },
-          borderRadius: {
-            xl: "1.5rem",
-            "2xl": "2rem",
-            "3xl": "2.75rem",
-          },
-          boxShadow: {
-            soft: "0 18px 50px rgba(0, 105, 107, 0.10)",
-            glow: "0 0 20px rgba(0, 206, 209, 0.22)",
-          }
-        }
-      }
-    }
-  </script>
-
   <style>
-    html, body {
-      height: 100%;
-    }
-
+    /* Custom styles */
     body {
       margin: 0;
       font-family: "Inter", sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(0, 206, 209, 0.14), transparent 38%),
-        linear-gradient(180deg, #f9fbfd 0%, #f4f6f8 100%);
-      color: #1c1f23;
+      background: radial-gradient(circle at top, rgba(0, 206, 209, 0.14), transparent 38%),
+                  linear-gradient(180deg, #f9fbfd 0%, #f4f6f8 100%);
       overflow-x: hidden;
     }
-
-    .glass {
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      background: rgba(255, 255, 255, 0.62);
-    }
-
-    .glass-strong {
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      background: rgba(255, 255, 255, 0.76);
-    }
-
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
-      line-height: 1;
-    }
-
+    .glass, .glass-strong { backdrop-filter: blur(18px); }
+    .glass-strong { backdrop-filter: blur(20px); background: rgba(255,255,255,0.76); }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 500; line-height: 1; }
     .soft-grid {
-      background-image:
-        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
       background-size: 28px 28px;
-      mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
     }
-
-    .float-up {
-      animation: floatUp 4s ease-in-out infinite;
+    /* Draggable container */
+    .viewer-drag {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      cursor: grab;
+      z-index: 1000;
+      transition: box-shadow 0.2s;
     }
-
-    @keyframes floatUp {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-6px); }
-    }
-
-    .fade-in {
-      animation: fadeIn 0.5s ease-out both;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* canvas styling */
+    .viewer-drag:active { cursor: grabbing; }
+    /* Canvas styling */
     #live2dCanvas {
       display: block;
       width: 100%;
       height: auto;
-      max-width: 500px;
-      margin: 0 auto;
       border-radius: 2rem;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
       background: #f9fbfd;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
     .canvas-container {
       display: flex;
       justify-content: center;
-      align-items: center;
       padding: 1rem;
     }
+    /* Modal */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-card {
+      background: white;
+      border-radius: 2rem;
+      max-width: 90vw;
+      width: 400px;
+      padding: 1.5rem;
+      box-shadow: 0 25px 50px -12px black;
+    }
+    .hidden { display: none; }
   </style>
 </head>
-
 <body>
-  <div class="min-h-screen relative">
-    <!-- Background -->
-    <div class="absolute inset-0 soft-grid opacity-40 pointer-events-none"></div>
-    <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-[32rem] h-[32rem] rounded-full bg-cyan-300/20 blur-3xl pointer-events-none"></div>
-    <div class="absolute bottom-0 right-0 w-[26rem] h-[26rem] rounded-full bg-amber-200/20 blur-3xl pointer-events-none"></div>
 
-    <!-- Header -->
-    <header class="sticky top-0 z-50 px-4 sm:px-6 md:px-8 pt-4">
-      <div class="glass-strong border border-white/60 shadow-soft rounded-[1.75rem] px-4 sm:px-5 h-16 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-glow">
-            <span class="material-symbols-outlined text-[22px]">view_in_ar</span>
-          </div>
-          <div>
-            <div class="text-[0.95rem] sm:text-base font-extrabold tracking-tight text-text leading-none">Ethereal Curator</div>
-            <div class="text-[0.72rem] sm:text-xs text-muted mt-1">Live2D Virtual Assistant</div>
-          </div>
+<!-- Floating Draggable Container -->
+<div id="viewerDrag" class="viewer-drag">
+  <div class="glass-strong border border-white/60 shadow-soft rounded-[2rem] p-2" style="background: rgba(255,255,255,0.8);">
+    <div class="canvas-wrapper">
+      <canvas id="live2dCanvas" width="450" height="550" style="width:450px; height:550px; border-radius:1.5rem;"></canvas>
+    </div>
+    <!-- Toolbar mini -->
+    <div class="flex items-center justify-between gap-2 mt-2 px-2">
+      <button id="micBtn" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"><span class="material-symbols-outlined text-primary">mic</span></button>
+      <button id="resetBtn" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"><span class="material-symbols-outlined text-muted">restart_alt</span></button>
+      <button id="expressionBtn" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"><span class="material-symbols-outlined text-amber-700">auto_awesome</span></button>
+      <button id="configBtn" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center"><span class="material-symbols-outlined text-muted">settings</span></button>
+    </div>
+    <div class="text-center text-[10px] text-muted mt-1">Drag window</div>
+  </div>
+</div>
+
+<!-- Main UI (non-draggable parts: header, navbar, etc.) -->
+<div class="min-h-screen relative pointer-events-none">
+  <div class="absolute inset-0 soft-grid opacity-40 pointer-events-none"></div>
+  <div class="absolute -top-20 left-1/2 w-[32rem] h-[32rem] rounded-full bg-cyan-300/20 blur-3xl pointer-events-none"></div>
+  
+  <!-- Header (clickable area) -->
+  <header class="relative z-50 px-4 pt-4 pointer-events-auto">
+    <div class="glass-strong border border-white/60 shadow-soft rounded-[1.75rem] px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-glow">
+          <span class="material-symbols-outlined">view_in_ar</span>
         </div>
-
-        <nav class="hidden md:flex items-center gap-2">
-          <a href="#" class="px-4 py-2 rounded-full text-sm font-medium text-primary bg-primary/10">Gallery</a>
-          <a href="#" class="px-4 py-2 rounded-full text-sm font-medium text-muted hover:bg-surface-2 transition-colors">Settings</a>
-          <a href="#" class="px-4 py-2 rounded-full text-sm font-medium text-muted hover:bg-surface-2 transition-colors">Analytics</a>
-        </nav>
-
-        <div class="flex items-center gap-2">
-          <button class="w-10 h-10 rounded-full hover:bg-surface-2 transition-colors flex items-center justify-center">
-            <span class="material-symbols-outlined text-[22px] text-primary">account_circle</span>
-          </button>
-          <button class="w-10 h-10 rounded-full hover:bg-surface-2 transition-colors flex items-center justify-center">
-            <span class="material-symbols-outlined text-[22px] text-primary">tune</span>
-          </button>
+        <div>
+          <div class="text-sm font-extrabold">Ethereal Curator</div>
+          <div class="text-xs text-muted">Live2D Assistant</div>
         </div>
       </div>
-    </header>
-
-    <main class="relative z-10 px-4 sm:px-6 md:px-8 pb-[140px] pt-4 md:pt-8">
-      <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1.25fr_0.75fr] gap-6 items-stretch">
-        
-        <!-- Main Character Stage (Live2D Canvas) -->
-        <section class="relative overflow-hidden rounded-[2rem] border border-white/60 glass shadow-soft min-h-[68vh] md:min-h-[calc(100vh-9rem)]">
-          <div class="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-primary/5"></div>
-          <div class="relative h-full flex flex-col">
-            <div class="px-5 sm:px-6 pt-5 sm:pt-6 flex items-center justify-between">
-              <div>
-                <p class="text-[0.7rem] sm:text-xs font-semibold uppercase tracking-[0.28em] text-muted">Character Stage</p>
-                <h1 class="mt-2 text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-text">Your assistant feels alive here</h1>
-              </div>
-              <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bg-white/70 border border-white/60">
-                <span id="live2d-status-led" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span id="live2d-status-text" class="text-xs font-semibold text-muted uppercase tracking-[0.18em]">Waiting</span>
-              </div>
-            </div>
-
-            <!-- Canvas area -->
-            <div class="flex-1 flex items-center justify-center px-4 py-6 sm:py-10">
-              <div class="relative canvas-container w-full">
-                <canvas id="live2dCanvas" width="450" height="550" style="width:100%; height:auto; max-width:450px; aspect-ratio:450/550"></canvas>
-              </div>
-            </div>
-
-            <div class="px-5 sm:px-6 pb-5 sm:pb-6">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="flex items-center gap-2 px-3 py-2 rounded-full bg-white/75 border border-white/70">
-                  <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                  <span id="mic-status" class="text-[0.7rem] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted">Mic: Inactive</span>
-                </div>
-                <div class="flex items-center gap-2 px-3 py-2 rounded-full bg-white/75 border border-white/70">
-                  <span id="model-status-led" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                  <span id="model-status-text" class="text-[0.7rem] sm:text-xs font-bold uppercase tracking-[0.2em] text-muted">Model: Loading</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Right Side Panel (Desktop) -->
-        <aside class="hidden md:flex flex-col gap-6">
-          <section class="rounded-[2rem] border border-white/60 glass shadow-soft p-6">
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-muted">Control Preview</p>
-            <h2 class="mt-2 text-2xl font-black tracking-tight text-text">Clean HUD</h2>
-            <p class="mt-3 text-sm leading-relaxed text-muted">
-              A compact control area that keeps the character dominant while still feeling polished and intentional.
-            </p>
-            <div class="mt-6 grid grid-cols-3 gap-3">
-              <button id="desktop-mic-btn" class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center transition hover:bg-white/90">
-                <div class="w-12 h-12 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <span class="material-symbols-outlined text-primary">mic</span>
-                </div>
-                <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Mic</div>
-              </button>
-              <button id="desktop-reset-btn" class="rounded-2xl bg-white/80 border border-white/70 p-4 text-center transition hover:bg-white/90">
-                <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center">
-                  <span class="material-symbols-outlined text-slate-500">restart_alt</span>
-                </div>
-                <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Reset</div>
-              </button>
-              <div class="relative">
-                <button id="desktop-expression-btn" class="w-full rounded-2xl bg-white/80 border border-white/70 p-4 text-center transition hover:bg-white/90">
-                  <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-amber-700">auto_awesome</span>
-                  </div>
-                  <div class="mt-3 text-xs font-semibold text-muted uppercase tracking-[0.18em]">Mood</div>
-                </button>
-                <div id="desktop-expression-menu" class="hidden absolute bottom-full left-0 mb-2 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2 z-20">
-                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="none">😐 Normal</button>
-                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="angry">😠 Marah</button>
-                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="sad">😢 Sedih</button>
-                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="heart">😍 Hati</button>
-                  <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="blush">😊 Blush</button>
-                </div>
-              </div>
-            </div>
-          </section>
-          <section class="rounded-[2rem] border border-white/60 glass shadow-soft p-6 flex-1">
-            <p class="text-xs font-semibold uppercase tracking-[0.28em] text-muted">Design Direction</p>
-            <ul class="mt-4 space-y-4 text-sm text-muted leading-relaxed">
-              <li class="p-4 rounded-2xl bg-white/70 border border-white/70">Character-first composition with soft depth.</li>
-              <li class="p-4 rounded-2xl bg-white/70 border border-white/70">Floating controls instead of heavy panels.</li>
-              <li class="p-4 rounded-2xl bg-white/70 border border-white/70">Calm, futuristic, and premium visual tone.</li>
-            </ul>
-          </section>
-        </aside>
-      </div>
-    </main>
-
-    <!-- Floating Mobile HUD -->
-    <div class="md:hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 w-full max-w-[420px] px-4">
-      <div class="glass-strong border border-white/70 shadow-soft rounded-[2rem] px-4 py-3">
-        <div class="flex items-center justify-between gap-3">
-          <button id="mobile-mic-btn" class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
-            <span id="mobile-mic-icon" class="material-symbols-outlined text-primary text-[24px]">mic</span>
-          </button>
-          <button id="mobile-reset-btn" class="w-14 h-14 rounded-2xl bg-white border border-white/70 shadow-sm flex items-center justify-center active:scale-95 transition-transform">
-            <span class="material-symbols-outlined text-muted text-[24px]">restart_alt</span>
-          </button>
-          <div class="relative flex-1">
-            <button id="mobile-expression-btn" class="w-full h-14 rounded-2xl bg-white border border-white/70 shadow-sm px-4 flex items-center justify-between">
-              <span class="text-sm font-bold text-primary">Expressions</span>
-              <span class="material-symbols-outlined text-muted text-[20px]">keyboard_arrow_up</span>
-            </button>
-            <div id="mobile-expression-menu" class="hidden absolute bottom-[4.5rem] right-0 w-48 rounded-2xl bg-white/95 border border-white shadow-soft p-2 z-20">
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="none">Normal</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="angry">Angry</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="sad">Sad</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="heart">Love</button>
-              <button class="w-full text-left px-4 py-3 rounded-xl hover:bg-primary/10 text-sm font-medium" data-exp="blush">Blush</button>
-            </div>
-          </div>
-        </div>
+      <div class="flex items-center gap-2">
+        <button id="profileBtn" class="w-10 h-10 rounded-full hover:bg-white/50 flex items-center justify-center"><span class="material-symbols-outlined text-primary">account_circle</span></button>
+        <button id="settingsHeaderBtn" class="w-10 h-10 rounded-full hover:bg-white/50 flex items-center justify-center"><span class="material-symbols-outlined text-primary">tune</span></button>
       </div>
     </div>
+  </header>
 
-    <nav class="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4">
-      <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] bg-primary text-white shadow-glow">
-          <span class="material-symbols-outlined text-[22px]">view_in_ar</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Models</span>
-        </a>
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-          <span class="material-symbols-outlined text-[22px]">animation</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Motions</span>
-        </a>
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-          <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Mood</span>
-        </a>
-        <a href="#" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-[1.5rem] text-muted hover:bg-white/60 transition-colors">
-          <span class="material-symbols-outlined text-[22px]">settings</span>
-          <span class="text-[0.65rem] font-bold uppercase tracking-[0.2em]">Config</span>
-        </a>
-      </div>
-    </nav>
-  </div>
+  <!-- Bottom Navigation (mobile) pointer-events-auto -->
+  <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-[420px] px-4 pointer-events-auto">
+    <div class="glass-strong border border-white/70 shadow-soft rounded-[2.25rem] px-2 py-2 flex items-center justify-between">
+      <button data-nav="models" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-primary bg-white/60 shadow"><span class="material-symbols-outlined">view_in_ar</span><span class="text-[0.65rem] font-bold">Models</span></button>
+      <button data-nav="motions" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-muted"><span class="material-symbols-outlined">animation</span><span class="text-[0.65rem] font-bold">Motions</span></button>
+      <button data-nav="mood" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-muted"><span class="material-symbols-outlined">auto_awesome</span><span class="text-[0.65rem] font-bold">Mood</span></button>
+      <button data-nav="config" class="flex-1 flex flex-col items-center py-2 rounded-[1.5rem] text-muted"><span class="material-symbols-outlined">settings</span><span class="text-[0.65rem] font-bold">Config</span></button>
+    </div>
+  </nav>
+</div>
 
-  <script>
-    // ======================== KONFIGURASI ========================
-    // ⚠️ GANTI URL INI dengan alamat folder model (tanpa texture) di server Anda
-    // Contoh: "https://ukaxy2.github.io/lumine/" atau "http://localhost:8000/lumine/"
-    const MODEL_BASE_URL = "https://raw.githubusercontent.com/username/repo/main/lumine/";  // <-- GANTI DENGAN URL REPO ANDA
-    const MODEL_JSON_PATH = "lumine.model3.json";
-    const TEXTURE_FILENAME = "texture_00.png";
-    const EXPRESSIONS = {
-      angry: "exp_angry.exp3.json",
-      sad: "exp_sad.exp3.json",
-      heart: "exp_heart.exp3.json",
-      blush: "exp_blush.exp3.json"
-    };
-    const IDLE_MOTION_PATH = "motion/idle.motion3.json";
+<!-- Modal untuk berbagai panel -->
+<div id="modalContainer" class="modal hidden pointer-events-auto"></div>
 
-    // ======================== GLOBALS ========================
-    let app, model;
-    let isMicActive = false;
-    let audioContext = null, mediaStream = null, sourceNode = null, analyserNode = null;
-    let currentVolume = 0;
-    let targetAngleX = 0, targetAngleY = 0, currentAngleX = 0, currentAngleY = 0;
-    let breathTime = 0;
-    let blinkInterval = null;
-    let db = null;
-    let modelLoaded = false;
-
-    // DOM elements
-    const canvas = document.getElementById('live2dCanvas');
-    const micStatusSpan = document.getElementById('mic-status');
-    const modelStatusText = document.getElementById('model-status-text');
-    const modelStatusLed = document.getElementById('model-status-led');
-    const live2dStatusText = document.getElementById('live2d-status-text');
-    const live2dStatusLed = document.getElementById('live2d-status-led');
-
-    // ======================== INDEXEDDB ========================
-    function openDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open("Live2DTextureDB", 1);
-        request.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains("textures")) db.createObjectStore("textures");
-        };
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    async function saveTextureToDB(blob) {
-      if (!db) db = await openDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("textures", "readwrite");
-        const store = tx.objectStore("textures");
-        const request = store.put(blob, TEXTURE_FILENAME);
-        request.onsuccess = () => resolve();
-        request.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    async function loadTextureFromDB() {
-      if (!db) db = await openDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("textures", "readonly");
-        const store = tx.objectStore("textures");
-        const request = store.get(TEXTURE_FILENAME);
-        request.onsuccess = () => resolve(request.result ? URL.createObjectURL(request.result) : null);
-        request.onerror = (e) => reject(e.target.error);
-      });
-    }
-
-    function showTextureUploadUI() {
-      return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[1000]';
-        overlay.innerHTML = `
-          <div class="bg-white rounded-3xl p-6 max-w-md text-center shadow-2xl">
-            <h3 class="text-xl font-bold mb-2">Upload Texture Model</h3>
-            <p class="text-sm text-gray-600 mb-4">File <strong>${TEXTURE_FILENAME}</strong> belum tersimpan. Pilih dari folder model Lumine.</p>
-            <div class="border-2 border-dashed border-primary/40 rounded-2xl p-6 mb-4 cursor-pointer hover:bg-gray-50" id="upload-dropzone">
-              📁 Drag & drop atau klik untuk upload
-            </div>
-            <input type="file" id="texture-file-input" accept="image/png" class="hidden" />
-            <button id="upload-confirm" class="bg-primary text-white px-6 py-2 rounded-full">Pilih File</button>
-          </div>
-        `;
-        document.body.appendChild(overlay);
-        const dropzone = overlay.querySelector('#upload-dropzone');
-        const fileInput = overlay.querySelector('#texture-file-input');
-        const confirmBtn = overlay.querySelector('#upload-confirm');
-        const handleFile = async (file) => {
-          if (!file || !file.type.includes('png')) return alert('Harap pilih file .png (texture_00.png)');
-          modelStatusText.innerText = 'Menyimpan texture...';
+<script>
+  // ======================== GLOBAL VARIABLES ========================
+  let app, model;
+  let isMicActive = false;
+  let audioContext = null, mediaStream = null, sourceNode = null, analyserNode = null;
+  let currentVolume = 0;
+  let targetAngleX = 0, targetAngleY = 0, currentAngleX = 0, currentAngleY = 0;
+  let breathTime = 0;
+  let blinkInterval = null;
+  let db = null;
+  let modelLoaded = false;
+  let currentModelData = null; // untuk menyimpan file model dari IndexedDB
+  
+  // Konfigurasi
+  let config = {
+    micSensitivity: 3.5,
+    blinkIntervalMs: 3500,
+    mouseFollow: true,
+    breathStrength: 0.2
+  };
+  
+  // Daftar motion yang tersedia
+  let motionList = [];
+  let currentMotion = null;
+  
+  // Parameter ekspresi berdasarkan file cdi3.json
+  const expressionParams = {
+    none: { reset: true },
+    angry: { ParamEX06: 1, ParamEX12: 1 },      // angry eye + angry mouth
+    sad: { ParamEX07: 1, ParamEX10: 0.5 },      // sad eye + tear
+    heart: { ParamEX08: 1, ParamEX09: 0.8 },    // heart eye + sparkling
+    blush: { ParamEX11: 1 }
+  };
+  
+  // ======================== INDEXEDDB HELPERS (menyimpan seluruh folder model) ========================
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("Live2DModelDB", 2);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("files")) db.createObjectStore("files", { keyPath: "path" });
+        if (!db.objectStoreNames.contains("metadata")) db.createObjectStore("metadata", { keyPath: "key" });
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+  
+  async function saveFileToDB(path, blob) {
+    if (!db) db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readwrite");
+      const store = tx.objectStore("files");
+      const req = store.put({ path: path, data: blob, type: blob.type, updated: Date.now() });
+      req.onsuccess = () => resolve();
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+  
+  async function getFileFromDB(path) {
+    if (!db) db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readonly");
+      const store = tx.objectStore("files");
+      const req = store.get(path);
+      req.onsuccess = () => resolve(req.result ? req.result.data : null);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+  
+  async function getAllFilesFromDB() {
+    if (!db) db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readonly");
+      const store = tx.objectStore("files");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+  
+  async function saveMetadata(key, value) {
+    if (!db) db = await openDB();
+    const tx = db.transaction("metadata", "readwrite");
+    const store = tx.objectStore("metadata");
+    store.put({ key: key, value: value });
+    return new Promise(r => tx.oncomplete = r);
+  }
+  
+  async function getMetadata(key) {
+    if (!db) db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("metadata", "readonly");
+      const store = tx.objectStore("metadata");
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.value : null);
+    });
+  }
+  
+  // ======================== UPLOAD MODEL FOLDER ========================
+  async function uploadModelFolder() {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.webkitdirectory = true;
+      input.multiple = true;
+      input.onchange = async (e) => {
+        const files = Array.from(e.target.files);
+        const fileMap = new Map();
+        for (const file of files) {
+          let path = file.webkitRelativePath;
+          // Simpan dengan path relatif dari root folder
+          const parts = path.split('/');
+          const relativePath = parts.slice(1).join('/'); // hapus nama folder pertama
           const blob = await file.slice(0, file.size, file.type);
-          await saveTextureToDB(blob);
-          const url = URL.createObjectURL(blob);
-          overlay.remove();
-          resolve(url);
-        };
-        dropzone.onclick = () => fileInput.click();
-        dropzone.ondragover = (e) => { e.preventDefault(); dropzone.style.background = '#eef1f4'; };
-        dropzone.ondragleave = () => dropzone.style.background = '';
-        dropzone.ondrop = async (e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) handleFile(file); };
-        confirmBtn.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => { if (fileInput.files[0]) handleFile(fileInput.files[0]); };
-      });
+          await saveFileToDB(relativePath, blob);
+          fileMap.set(relativePath, blob);
+        }
+        // Cari file model utama (model3.json)
+        let modelJsonPath = null;
+        for (let path of fileMap.keys()) {
+          if (path.endsWith('.model3.json')) {
+            modelJsonPath = path;
+            break;
+          }
+        }
+        if (modelJsonPath) {
+          await saveMetadata('currentModelPath', modelJsonPath);
+          await saveMetadata('modelFolderUploaded', true);
+          resolve(modelJsonPath);
+        } else {
+          reject(new Error("Tidak ditemukan file .model3.json"));
+        }
+      };
+      input.click();
+    });
+  }
+  
+  // ======================== LOAD MODEL DARI INDEXEDDB ========================
+  async function loadModelFromDB(modelJsonPath) {
+    if (model) {
+      app.stage.removeChild(model);
+      model.destroy();
     }
-
-    // ======================== LIVE2D MODEL LOAD ========================
-    async function loadModelWithTexture(textureUrl) {
-      if (model) { app.stage.removeChild(model); model.destroy(); }
-      const modelJsonUrl = MODEL_BASE_URL + MODEL_JSON_PATH;
-      let modelData;
-      try {
-        const resp = await fetch(modelJsonUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        modelData = await resp.json();
-      } catch(e) {
-        modelStatusText.innerText = 'Gagal load model.json! Periksa BASE_URL';
-        live2dStatusText.innerText = 'Error';
-        return false;
-      }
-      if (modelData.FileReferences?.Textures) modelData.FileReferences.Textures = [textureUrl];
-      else modelData.FileReferences = { ...modelData.FileReferences, Textures: [textureUrl] };
-      try {
-        model = await PIXI.live2d.Live2DModel.from(modelData);
-        model.x = canvas.width / 2;
-        model.y = canvas.height / 2;
-        model.anchor.set(0.5, 0.5);
-        model.scale.set(0.28);
-        app.stage.addChild(model);
-        // idle motion
-        try { await fetch(MODEL_BASE_URL + IDLE_MOTION_PATH, { method: 'HEAD' }); model.internalModel.startMotion(IDLE_MOTION_PATH, 0, 0); } catch(e) {}
-        modelLoaded = true;
-        modelStatusText.innerText = 'Siap';
-        modelStatusLed.className = 'w-2 h-2 rounded-full bg-green-500';
-        live2dStatusText.innerText = 'Active';
-        live2dStatusLed.className = 'w-2.5 h-2.5 rounded-full bg-green-500';
-        return true;
-      } catch(e) {
-        modelStatusText.innerText = 'Error load model';
-        return false;
+    // Baca file model3.json
+    const modelJsonBlob = await getFileFromDB(modelJsonPath);
+    if (!modelJsonBlob) throw new Error("Model JSON tidak ditemukan");
+    const modelJsonText = await modelJsonBlob.text();
+    let modelData = JSON.parse(modelJsonText);
+    
+    // Ganti semua referensi texture dan file lainnya menjadi object URL dari DB
+    const textures = modelData.FileReferences?.Textures || [];
+    const newTextureUrls = [];
+    for (const texPath of textures) {
+      const texBlob = await getFileFromDB(texPath);
+      if (texBlob) {
+        const url = URL.createObjectURL(texBlob);
+        newTextureUrls.push(url);
+      } else {
+        console.warn("Texture not found:", texPath);
+        newTextureUrls.push(""); // fallback
       }
     }
-
-    // ======================== PARAMETER CONTROL ========================
-    function setParameter(name, value, clamp=true) {
-      if (!model?.internalModel) return;
-      if (clamp) value = Math.min(1, Math.max(0, value));
-      try { model.internalModel.setParameterValue(name, value); } catch(e) {}
+    if (modelData.FileReferences) modelData.FileReferences.Textures = newTextureUrls;
+    
+    // Untuk file .moc3, kita perlu override dengan blob URL juga? Sebenarnya library akan mencari berdasarkan path relatif, tapi karena kita override Textures saja cukup.
+    // Namun .moc3 juga harus bisa diakses. Kita perlu menyediakan custom loader? alternatif: kita buat blob URL untuk moc3 dan override.
+    const mocPath = modelData.FileReferences.Moc;
+    if (mocPath) {
+      const mocBlob = await getFileFromDB(mocPath);
+      if (mocBlob) {
+        const mocUrl = URL.createObjectURL(mocBlob);
+        modelData.FileReferences.Moc = mocUrl;
+      }
     }
-
-    function startAutoBlink() {
-      if (blinkInterval) clearInterval(blinkInterval);
-      blinkInterval = setInterval(() => {
-        if (!model) return;
-        setParameter("ParamEyeLOpen", 0);
-        setParameter("ParamEyeROpen", 0);
-        setTimeout(() => { setParameter("ParamEyeLOpen", 1); setParameter("ParamEyeROpen", 1); }, 120);
-      }, Math.random() * 2000 + 3000);
+    // Physics
+    if (modelData.FileReferences.Physics) {
+      const physBlob = await getFileFromDB(modelData.FileReferences.Physics);
+      if (physBlob) modelData.FileReferences.Physics = URL.createObjectURL(physBlob);
     }
-
-    function startAnimationLoop() {
-      function animate() {
-        if (!model) { requestAnimationFrame(animate); return; }
-        breathTime += 0.025;
-        setParameter("ParamBreath", 0.5 + Math.sin(breathTime) * 0.2);
+    // Motions (akan di-load nanti)
+    // Inisialisasi model
+    try {
+      model = await PIXI.live2d.Live2DModel.from(modelData);
+      model.x = 225;
+      model.y = 275;
+      model.anchor.set(0.5, 0.5);
+      model.scale.set(0.28);
+      app.stage.addChild(model);
+      modelLoaded = true;
+      
+      // Daftar motion dari folder motion/
+      motionList = [];
+      const allFiles = await getAllFilesFromDB();
+      for (const file of allFiles) {
+        if (file.path.endsWith('.motion3.json') && !file.path.includes('idle')) {
+          motionList.push(file.path);
+        }
+      }
+      // Mainkan idle motion jika ada
+      const idlePath = "motion/idle.motion3.json";
+      const idleBlob = await getFileFromDB(idlePath);
+      if (idleBlob) {
+        const idleUrl = URL.createObjectURL(idleBlob);
+        model.internalModel.startMotion(idleUrl, 0, 0);
+      }
+      return true;
+    } catch(e) {
+      console.error(e);
+      return false;
+    }
+  }
+  
+  // ======================== PARAMETER CONTROL ========================
+  function setParameter(name, value, clamp=true) {
+    if (!model?.internalModel) return;
+    if (clamp) value = Math.min(1, Math.max(0, value));
+    try { model.internalModel.setParameterValue(name, value); } catch(e) {}
+  }
+  
+  function resetAllExpressionParams() {
+    // Reset semua EX parameters ke 0
+    for (let param in expressionParams) {
+      if (param !== 'none') {
+        for (let p in expressionParams[param]) {
+          setParameter(p, 0, true);
+        }
+      }
+    }
+    // Juga reset mouth form dll
+    setParameter("ParamEX01", 0); setParameter("ParamEX02", 0); setParameter("ParamEX03", 0);
+    setParameter("ParamEX04", 0); setParameter("ParamEX05", 0); setParameter("ParamEX06", 0);
+    setParameter("ParamEX07", 0); setParameter("ParamEX08", 0); setParameter("ParamEX09", 0);
+    setParameter("ParamEX10", 0); setParameter("ParamEX11", 0); setParameter("ParamEX12", 0);
+  }
+  
+  function setExpression(exprName) {
+    if (!model) return;
+    resetAllExpressionParams();
+    if (exprName !== 'none') {
+      const params = expressionParams[exprName];
+      if (params) {
+        for (let [p, val] of Object.entries(params)) {
+          setParameter(p, val, true);
+        }
+      }
+    }
+  }
+  
+  async function playMotion(motionPath) {
+    if (!model) return;
+    const motionBlob = await getFileFromDB(motionPath);
+    if (motionBlob) {
+      const motionUrl = URL.createObjectURL(motionBlob);
+      model.internalModel.startMotion(motionUrl, 0, 0);
+    }
+  }
+  
+  // ======================== MICROPHONE ========================
+  async function initMicrophone() {
+    if (audioContext) await closeMicrophone();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStream = stream;
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      analyserNode = audioContext.createAnalyser();
+      analyserNode.fftSize = 256;
+      sourceNode = audioContext.createMediaStreamSource(stream);
+      sourceNode.connect(analyserNode);
+      await audioContext.resume();
+      isMicActive = true;
+      document.getElementById('micBtn').classList.add('bg-red-100');
+    } catch(e) { console.error(e); alert("Mic tidak diizinkan"); }
+  }
+  async function closeMicrophone() {
+    if (sourceNode) sourceNode.disconnect();
+    if (analyserNode) analyserNode.disconnect();
+    if (audioContext) await audioContext.close();
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    audioContext = null; mediaStream = null; sourceNode = null; analyserNode = null;
+    isMicActive = false;
+    document.getElementById('micBtn').classList.remove('bg-red-100');
+  }
+  
+  // ======================== ANIMATION LOOP ========================
+  function startAnimationLoop() {
+    function animate() {
+      if (!model) { requestAnimationFrame(animate); return; }
+      breathTime += 0.025;
+      setParameter("ParamBreath", 0.5 + Math.sin(breathTime) * config.breathStrength);
+      if (config.mouseFollow) {
         currentAngleX += (targetAngleX - currentAngleX) * 0.12;
         currentAngleY += (targetAngleY - currentAngleY) * 0.12;
         setParameter("ParamAngleX", currentAngleX, false);
         setParameter("ParamAngleY", currentAngleY, false);
-        if (isMicActive && analyserNode) {
-          const data = new Uint8Array(analyserNode.frequencyBinCount);
-          analyserNode.getByteTimeDomainData(data);
-          let rms = 0;
-          for (let i=0; i<data.length; i++) { let v = (data[i]-128)/128; rms += v*v; }
-          rms = Math.sqrt(rms/data.length) || 0;
-          currentVolume = Math.min(1, rms * 3.5);
-          if (currentVolume < 0.02) currentVolume = 0;
-        } else { currentVolume *= 0.95; }
-        setParameter("ParamMouthOpenY", currentVolume, true);
-        requestAnimationFrame(animate);
       }
+      if (isMicActive && analyserNode) {
+        const data = new Uint8Array(analyserNode.frequencyBinCount);
+        analyserNode.getByteTimeDomainData(data);
+        let rms = 0;
+        for (let i=0; i<data.length; i++) { let v = (data[i]-128)/128; rms += v*v; }
+        rms = Math.sqrt(rms/data.length) || 0;
+        let volume = Math.min(1, rms * config.micSensitivity);
+        if (volume < 0.02) volume = 0;
+        currentVolume = volume;
+      } else {
+        currentVolume *= 0.95;
+      }
+      setParameter("ParamMouthOpenY", currentVolume, true);
       requestAnimationFrame(animate);
     }
-
-    // ======================== MICROPHONE ========================
-    async function initMicrophone() {
-      if (audioContext) await closeMicrophone();
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaStream = stream;
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyserNode = audioContext.createAnalyser();
-        analyserNode.fftSize = 256;
-        sourceNode = audioContext.createMediaStreamSource(stream);
-        sourceNode.connect(analyserNode);
-        await audioContext.resume();
-        isMicActive = true;
-        micStatusSpan.innerText = 'Mic: Active';
-        document.querySelectorAll('#mic-icon, #mobile-mic-icon').forEach(icon => { if(icon) icon.classList.add('text-red-500'); });
-      } catch(e) { console.error(e); micStatusSpan.innerText = 'Mic: Error'; }
-    }
-    async function closeMicrophone() {
-      if (sourceNode) sourceNode.disconnect();
-      if (analyserNode) analyserNode.disconnect();
-      if (audioContext) await audioContext.close();
-      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-      audioContext = null; mediaStream = null; sourceNode = null; analyserNode = null;
-      isMicActive = false;
-      micStatusSpan.innerText = 'Mic: Inactive';
-      document.querySelectorAll('#mic-icon, #mobile-mic-icon').forEach(icon => { if(icon) icon.classList.remove('text-red-500'); });
-    }
-
-    // ======================== EXPRESSIONS & RESET ========================
-    async function triggerExpression(exprKey) {
+    requestAnimationFrame(animate);
+  }
+  
+  function startAutoBlink() {
+    if (blinkInterval) clearInterval(blinkInterval);
+    blinkInterval = setInterval(() => {
       if (!model) return;
-      if (exprKey === 'none') {
-        if (model.internalModel.resetExpression) model.internalModel.resetExpression();
-        return;
-      }
-      const file = EXPRESSIONS[exprKey];
-      if (!file) return;
-      try {
-        const resp = await fetch(MODEL_BASE_URL + file);
-        if (!resp.ok) throw new Error();
-        const exprData = await resp.json();
-        model.internalModel.setExpression(exprData);
-      } catch(e) { console.warn("Ekspresi gagal", e); }
-    }
-    function resetPose() {
-      targetAngleX = targetAngleY = currentAngleX = currentAngleY = 0;
-      setParameter("ParamAngleX", 0); setParameter("ParamAngleY", 0);
-      setParameter("ParamAngleZ", 0); setParameter("ParamBodyAngleX", 0);
-      currentVolume = 0; setParameter("ParamMouthOpenY", 0);
-    }
-
-    // ======================== MOUSE TRACKING ========================
-    function initMouseTracking() {
-      document.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const centerX = rect.left + rect.width/2, centerY = rect.top + rect.height/2;
-        let dx = (e.clientX - centerX) / (rect.width/2);
-        let dy = (e.clientY - centerY) / (rect.height/2);
-        dx = Math.min(0.8, Math.max(-0.8, dx));
-        dy = Math.min(0.8, Math.max(-0.8, dy));
-        targetAngleX = dx * 25;
-        targetAngleY = dy * 20;
-      });
-    }
-
-    // ======================== INIT ========================
-    (async function init() {
-      app = new PIXI.Application({ view: canvas, width: 450, height: 550, backgroundColor: 0xf9fbfd, backgroundAlpha: 1 });
-      initMouseTracking();
+      setParameter("ParamEyeLOpen", 0);
+      setParameter("ParamEyeROpen", 0);
+      setTimeout(() => { setParameter("ParamEyeLOpen", 1); setParameter("ParamEyeROpen", 1); }, 120);
+    }, config.blinkIntervalMs);
+  }
+  
+  // ======================== DRAG WINDOW ========================
+  function makeDraggable() {
+    const container = document.getElementById('viewerDrag');
+    let offsetX, offsetY, isDragging = false;
+    container.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button')) return;
+      isDragging = true;
+      offsetX = e.clientX - container.offsetLeft;
+      offsetY = e.clientY - container.offsetTop;
+      container.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      let left = e.clientX - offsetX;
+      let top = e.clientY - offsetY;
+      left = Math.min(window.innerWidth - container.offsetWidth - 10, Math.max(10, left));
+      top = Math.min(window.innerHeight - container.offsetHeight - 10, Math.max(10, top));
+      container.style.left = left + 'px';
+      container.style.top = top + 'px';
+      container.style.right = 'auto';
+      container.style.bottom = 'auto';
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; container.style.cursor = 'grab'; });
+  }
+  
+  // ======================== MODAL UI ========================
+  function showModal(content) {
+    const modalDiv = document.getElementById('modalContainer');
+    modalDiv.innerHTML = `<div class="modal-card">${content}</div>`;
+    modalDiv.classList.remove('hidden');
+    modalDiv.onclick = (e) => { if(e.target === modalDiv) modalDiv.classList.add('hidden'); };
+  }
+  
+  function showProfile() {
+    showModal(`
+      <h3 class="text-xl font-bold mb-2">Profil</h3>
+      <p>Asisten Virtual Live2D - Lumine</p>
+      <p class="text-sm text-muted mt-2">Versi 2.0 | Ethereal Curator</p>
+      <button class="mt-4 bg-primary text-white px-4 py-2 rounded-full" onclick="document.getElementById('modalContainer').classList.add('hidden')">Tutup</button>
+    `);
+  }
+  
+  function showSettings() {
+    showModal(`
+      <h3 class="text-xl font-bold mb-3">Pengaturan</h3>
+      <label class="block mb-2">Sensitivitas Mic: <input type="range" id="micSens" min="1" max="6" step="0.1" value="${config.micSensitivity}" class="w-full"></label>
+      <label class="block mb-2">Interval Kedip (ms): <input type="number" id="blinkInterval" value="${config.blinkIntervalMs}" class="border rounded p-1 w-full"></label>
+      <label class="block mb-2"><input type="checkbox" id="mouseFollow" ${config.mouseFollow ? 'checked' : ''}> Ikuti Mouse</label>
+      <button id="saveSettingsBtn" class="bg-primary text-white px-4 py-2 rounded-full mt-2">Simpan</button>
+    `);
+    document.getElementById('saveSettingsBtn').onclick = () => {
+      config.micSensitivity = parseFloat(document.getElementById('micSens').value);
+      config.blinkIntervalMs = parseInt(document.getElementById('blinkInterval').value);
+      config.mouseFollow = document.getElementById('mouseFollow').checked;
       startAutoBlink();
-      startAnimationLoop();
-
-      await openDB();
-      let textureUrl = await loadTextureFromDB();
-      if (!textureUrl) textureUrl = await showTextureUploadUI();
-      await loadModelWithTexture(textureUrl);
-
-      // Attach UI events
-      const micButtons = ['#mobile-mic-btn', '#desktop-mic-btn'];
-      micButtons.forEach(sel => { const btn = document.querySelector(sel); if(btn) btn.onclick = () => isMicActive ? closeMicrophone() : initMicrophone(); });
-      const resetButtons = ['#mobile-reset-btn', '#desktop-reset-btn'];
-      resetButtons.forEach(sel => { const btn = document.querySelector(sel); if(btn) btn.onclick = resetPose; });
-      const expressionMenus = ['#mobile-expression-menu', '#desktop-expression-menu'];
-      const toggleBtns = ['#mobile-expression-btn', '#desktop-expression-btn'];
-      toggleBtns.forEach((btnSel, idx) => {
-        const btn = document.querySelector(btnSel);
-        if(btn) btn.onclick = (e) => { e.stopPropagation(); document.querySelector(expressionMenus[idx]).classList.toggle('hidden'); };
-      });
-      document.querySelectorAll('[data-exp]').forEach(el => {
-        el.onclick = () => { triggerExpression(el.getAttribute('data-exp')); document.querySelectorAll('.hidden').forEach(menu => menu.classList.add('hidden')); };
-      });
-      document.addEventListener('click', () => {
-        document.querySelectorAll('#mobile-expression-menu, #desktop-expression-menu').forEach(m => m.classList.add('hidden'));
-      });
-      if (MODEL_BASE_URL.includes("username/repo")) {
-        modelStatusText.innerText = '⚠️ Ganti BASE_URL';
-        live2dStatusText.innerText = 'Config Error';
-      }
-    })();
-  </script>
+      document.getElementById('modalContainer').classList.add('hidden');
+    };
+  }
+  
+  function showModelsPanel() {
+    showModal(`
+      <h3 class="text-xl font-bold mb-2">Model</h3>
+      <p>Model saat ini: Lumine</p>
+      <button id="uploadModelBtn" class="bg-primary text-white px-4 py-2 rounded-full mt-2">Upload Folder Model Baru</button>
+      <p class="text-xs text-muted mt-2">*Upload folder yang berisi .model3.json, .moc3, texture, motion, dll.</p>
+    `);
+    document.getElementById('uploadModelBtn').onclick = async () => {
+      try {
+        const modelPath = await uploadModelFolder();
+        await loadModelFromDB(modelPath);
+        document.getElementById('modalContainer').classList.add('hidden');
+        alert("Model berhasil dimuat!");
+      } catch(e) { alert("Gagal upload: "+e.message); }
+    };
+  }
+  
+  function showMotionsPanel() {
+    if (motionList.length === 0) {
+      showModal(`<h3 class="text-xl font-bold">Motion</h3><p>Belum ada motion tersedia. Upload folder model yang berisi motion.</p><button onclick="document.getElementById('modalContainer').classList.add('hidden')" class="mt-2 bg-primary text-white px-4 py-2 rounded-full">Tutup</button>`);
+      return;
+    }
+    let listHtml = '<h3 class="text-xl font-bold mb-2">Pilih Motion</h3><div class="max-h-60 overflow-y-auto">';
+    motionList.forEach(m => {
+      listHtml += `<button class="motion-item block w-full text-left p-2 hover:bg-gray-100 rounded" data-path="${m}">${m.split('/').pop()}</button>`;
+    });
+    listHtml += '</div>';
+    showModal(listHtml);
+    document.querySelectorAll('.motion-item').forEach(btn => {
+      btn.onclick = () => { playMotion(btn.dataset.path); document.getElementById('modalContainer').classList.add('hidden'); };
+    });
+  }
+  
+  function showMoodPanel() {
+    showModal(`
+      <h3 class="text-xl font-bold mb-2">Ekspresi / Mood</h3>
+      <div class="grid grid-cols-2 gap-2">
+        <button data-exp="none" class="bg-gray-100 p-2 rounded">😐 Normal</button>
+        <button data-exp="angry" class="bg-gray-100 p-2 rounded">😠 Marah</button>
+        <button data-exp="sad" class="bg-gray-100 p-2 rounded">😢 Sedih</button>
+        <button data-exp="heart" class="bg-gray-100 p-2 rounded">😍 Hati</button>
+        <button data-exp="blush" class="bg-gray-100 p-2 rounded">😊 Blush</button>
+      </div>
+    `);
+    document.querySelectorAll('[data-exp]').forEach(btn => {
+      btn.onclick = () => { setExpression(btn.dataset.exp); document.getElementById('modalContainer').classList.add('hidden'); };
+    });
+  }
+  
+  function showConfigPanel() {
+    showSettings(); // reuse
+  }
+  
+  // ======================== INIT ========================
+  (async function init() {
+    app = new PIXI.Application({ view: document.getElementById('live2dCanvas'), width: 450, height: 550, backgroundColor: 0xf9fbfd });
+    makeDraggable();
+    startAnimationLoop();
+    startAutoBlink();
+    
+    // Cek apakah sudah ada model di IndexedDB
+    await openDB();
+    const savedModelPath = await getMetadata('currentModelPath');
+    if (savedModelPath) {
+      await loadModelFromDB(savedModelPath);
+    } else {
+      // Tawarkan upload
+      alert("Selamat datang! Silakan upload folder model Live2D (Lumine) untuk memulai.");
+      try {
+        const modelPath = await uploadModelFolder();
+        await loadModelFromDB(modelPath);
+      } catch(e) { alert("Gagal upload model. Pastikan folder berisi file .model3.json"); }
+    }
+    
+    // Event UI
+    document.getElementById('micBtn').onclick = () => isMicActive ? closeMicrophone() : initMicrophone();
+    document.getElementById('resetBtn').onclick = () => { targetAngleX = targetAngleY = 0; currentAngleX = currentAngleY = 0; setParameter("ParamAngleX",0); setParameter("ParamAngleY",0); };
+    document.getElementById('expressionBtn').onclick = () => showMoodPanel();
+    document.getElementById('configBtn').onclick = () => showConfigPanel();
+    document.getElementById('profileBtn').onclick = () => showProfile();
+    document.getElementById('settingsHeaderBtn').onclick = () => showSettings();
+    
+    // Bottom nav
+    document.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.onclick = () => {
+        const nav = btn.dataset.nav;
+        if (nav === 'models') showModelsPanel();
+        else if (nav === 'motions') showMotionsPanel();
+        else if (nav === 'mood') showMoodPanel();
+        else if (nav === 'config') showConfigPanel();
+      };
+    });
+    
+    // Mouse follow
+    document.addEventListener('mousemove', (e) => {
+      if (!config.mouseFollow) return;
+      const canvasRect = document.getElementById('live2dCanvas').getBoundingClientRect();
+      const centerX = canvasRect.left + canvasRect.width/2;
+      const centerY = canvasRect.top + canvasRect.height/2;
+      let dx = (e.clientX - centerX) / (canvasRect.width/2);
+      let dy = (e.clientY - centerY) / (canvasRect.height/2);
+      dx = Math.min(0.8, Math.max(-0.8, dx));
+      dy = Math.min(0.8, Math.max(-0.8, dy));
+      targetAngleX = dx * 25;
+      targetAngleY = dy * 20;
+    });
+  })();
+</script>
 </body>
 </html>
